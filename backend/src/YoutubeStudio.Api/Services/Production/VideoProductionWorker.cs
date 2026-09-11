@@ -34,6 +34,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
         var scenePlan = scope.ServiceProvider.GetRequiredService<IScenePlanProvider>();
         var voice = scope.ServiceProvider.GetRequiredService<IVoiceProvider>();
         var visual = scope.ServiceProvider.GetRequiredService<IVisualProvider>();
+        var musicSfx = scope.ServiceProvider.GetRequiredService<IMusicSfxProvider>();
         var captions = scope.ServiceProvider.GetRequiredService<ICaptionProvider>();
         var render = scope.ServiceProvider.GetRequiredService<IRenderProvider>();
         var qa = scope.ServiceProvider.GetRequiredService<IQaProvider>();
@@ -79,11 +80,17 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                     scene.VisualDirection, JsonSerializer.Serialize(new { scene = scene.Number, mediaType = result.MediaType }), cancellationToken);
             }
 
+            var musicSfxResult = await musicSfx.GenerateMusicSfxAsync(
+                new MusicSfxRequest(scriptResult.Title, scriptResult.Script, planResult.Scenes.Sum(x => x.DurationSeconds)), cancellationToken);
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.MusicSfx, musicSfxResult.ProviderAssetId,
+                null, JsonSerializer.Serialize(new { mediaType = musicSfxResult.MediaType }), cancellationToken);
+
             var captionResult = await captions.GenerateCaptionsAsync(new CaptionRequest(scriptResult.Script), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Captions, captionResult.ProviderAssetId, null, null, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Rendering, cancellationToken);
 
-            var renderResult = await render.RenderAsync(new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], null), cancellationToken);
+            var renderResult = await render.RenderAsync(
+                new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], musicSfxResult.ProviderAssetId), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Render, renderResult.ProviderAssetId, null,
                 JsonSerializer.Serialize(new { durationSeconds = renderResult.Duration.TotalSeconds }), cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Qa, cancellationToken);
