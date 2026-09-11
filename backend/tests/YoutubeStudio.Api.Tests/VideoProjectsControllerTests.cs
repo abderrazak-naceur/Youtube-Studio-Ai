@@ -127,6 +127,65 @@ public sealed class VideoProjectsControllerTests
         Assert.Equal(1, await db.ProductionJobs.CountAsync(x => x.VideoProjectId == project.Id));
     }
 
+    [Fact]
+    public async Task GetPipeline_returns_artifacts_in_creation_order()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        var project = new VideoProject
+        {
+            WorkspaceId = workspace.Id,
+            Prompt = "Create a video about AI",
+            Status = VideoProjectStatus.Scripted
+        };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var first = new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = ProductionArtifactType.Research,
+            ProviderAssetId = "research-1",
+            Content = "source evidence",
+            CreatedAtUtc = DateTime.UtcNow.AddMinutes(-2)
+        };
+        var second = new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = ProductionArtifactType.Script,
+            ProviderAssetId = "script-1",
+            Content = "generated script",
+            MetadataJson = "{\"version\":1}",
+            CreatedAtUtc = DateTime.UtcNow.AddMinutes(-1)
+        };
+        db.ProductionArtifacts.AddRange(first, second);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.GetPipeline(project.Id, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<PipelineResponse>(ok.Value);
+        Assert.Equal(project.Id, response.VideoProjectId);
+        Assert.Equal(2, response.Artifacts.Count);
+        Assert.Equal(nameof(ProductionArtifactType.Research), response.Artifacts[0].Type);
+        Assert.Equal("research-1", response.Artifacts[0].ProviderAssetId);
+        Assert.Equal(nameof(ProductionArtifactType.Script), response.Artifacts[1].Type);
+        Assert.Equal("generated script", response.Artifacts[1].Content);
+    }
+
+    [Fact]
+    public async Task GetPipeline_returns_not_found_for_unknown_project()
+    {
+        await using var db = CreateDb();
+        var controller = CreateController(db);
+
+        var result = await controller.GetPipeline(Guid.NewGuid(), CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
+    }
+
     private static VideoProjectsController CreateController(YoutubeStudioDbContext db) =>
         new(db, new ProductionJobService(db));
 
