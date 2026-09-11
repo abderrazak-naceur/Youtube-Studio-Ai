@@ -6,9 +6,7 @@ using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Services.Production;
 
-public sealed class VideoProductionWorker(
-    IServiceScopeFactory scopeFactory,
-    ILogger<VideoProductionWorker> logger) : BackgroundService
+public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILogger<VideoProductionWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
 
@@ -25,7 +23,6 @@ public sealed class VideoProductionWorker(
                 await Task.Delay(PollInterval, stoppingToken);
             }
         }
-        logger.LogInformation("Video production worker stopped.");
     }
 
     private async Task ProcessNextAsync(CancellationToken cancellationToken)
@@ -44,73 +41,54 @@ public sealed class VideoProductionWorker(
         var job = await db.ProductionJobs.Include(x => x.VideoProject)
             .Where(x => x.Status == ProductionJobStatus.Queued)
             .OrderBy(x => x.CreatedAtUtc).FirstOrDefaultAsync(cancellationToken);
-
         if (job is null) { await Task.Delay(PollInterval, cancellationToken); return; }
 
         job.Status = ProductionJobStatus.Running;
-        job.VideoProject.Status = VideoProjectStatus.Researching;
-        await SaveAsync(db, job, cancellationToken);
+        await SetStageAsync(db, job, VideoProjectStatus.Researching, cancellationToken);
 
         try
         {
             var researchResult = await research.ResearchAsync(new ResearchRequest(job.VideoProject.Prompt), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Research,
-                "placeholder-research", researchResult.Summary,
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Research, "research", researchResult.Summary,
                 JsonSerializer.Serialize(new { sources = researchResult.Sources }), cancellationToken);
-            await SetStageAsync(db, job, VideoProjectStatus.Scripted, cancellationToken);
 
-            var scriptResult = await script.GenerateScriptAsync(
-                new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
+            var scriptResult = await script.GenerateScriptAsync(new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
             job.VideoProject.Title = scriptResult.Title;
             job.VideoProject.Script = scriptResult.Script;
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Research,
-                "research-context", researchResult.Summary, null, cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.ScenePlan,
-                "script", scriptResult.Script,
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Script, "script", scriptResult.Script,
                 JsonSerializer.Serialize(new { title = scriptResult.Title }), cancellationToken);
+            await SetStageAsync(db, job, VideoProjectStatus.Scripted, cancellationToken);
+
+            var planResult = await scenePlan.CreateScenePlanAsync(new ScenePlanRequest(scriptResult.Title, scriptResult.Script), cancellationToken);
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.ScenePlan, "scene-plan",
+                JsonSerializer.Serialize(planResult.Scenes), null, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Planned, cancellationToken);
 
-            var planResult = await scenePlan.CreateScenePlanAsync(
-                new ScenePlanRequest(scriptResult.Title, scriptResult.Script), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.ScenePlan,
-                "placeholder-scene-plan", JsonSerializer.Serialize(planResult.Scenes), null, cancellationToken);
-            await SetStageAsync(db, job, VideoProjectStatus.Producing, cancellationToken);
-
             var voiceResult = await voice.GenerateVoiceAsync(new VoiceRequest(scriptResult.Script, null), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Voice,
-                voiceResult.ProviderAssetId, null,
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Voice, voiceResult.ProviderAssetId, null,
                 JsonSerializer.Serialize(new { durationSeconds = voiceResult.Duration.TotalSeconds }), cancellationToken);
 
             var visualAssetIds = new List<string>();
             foreach (var scene in planResult.Scenes)
             {
-                var visualResult = await visual.GenerateVisualAsync(
-                    new VisualRequest(scene.VisualDirection, scene.DurationSeconds), cancellationToken);
-                visualAssetIds.Add(visualResult.ProviderAssetId);
-                await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Visual,
-                    visualResult.ProviderAssetId, scene.VisualDirection,
-                    JsonSerializer.Serialize(new { scene = scene.Number, mediaType = visualResult.MediaType }), cancellationToken);
+                var result = await visual.GenerateVisualAsync(new VisualRequest(scene.VisualDirection, scene.DurationSeconds), cancellationToken);
+                visualAssetIds.Add(result.ProviderAssetId);
+                await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Visual, result.ProviderAssetId,
+                    scene.VisualDirection, JsonSerializer.Serialize(new { scene = scene.Number, mediaType = result.MediaType }), cancellationToken);
             }
 
             var captionResult = await captions.GenerateCaptionsAsync(new CaptionRequest(scriptResult.Script), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Captions,
-                captionResult.ProviderAssetId, null, null, cancellationToken);
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Captions, captionResult.ProviderAssetId, null, null, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Rendering, cancellationToken);
 
-            var renderResult = await render.RenderAsync(
-                new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], null), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Render,
-                renderResult.ProviderAssetId, null,
+            var renderResult = await render.RenderAsync(new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], null), cancellationToken);
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Render, renderResult.ProviderAssetId, null,
                 JsonSerializer.Serialize(new { durationSeconds = renderResult.Duration.TotalSeconds }), cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Qa, cancellationToken);
 
-            var qaResult = await qa.EvaluateAsync(
-                new QaRequest(scriptResult.Title, scriptResult.Script, renderResult.ProviderAssetId), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa,
-                "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
-
-            if (!qaResult.Passed)
-                throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
+            var qaResult = await qa.EvaluateAsync(new QaRequest(scriptResult.Title, scriptResult.Script, renderResult.ProviderAssetId), cancellationToken);
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa, "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
+            if (!qaResult.Passed) throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
 
             job.Status = ProductionJobStatus.Succeeded;
             job.VideoProject.Status = VideoProjectStatus.Completed;
@@ -124,7 +102,6 @@ public sealed class VideoProductionWorker(
             job.VideoProject.Status = VideoProjectStatus.Failed;
             logger.LogError(exception, "Production job {JobId} failed for project {ProjectId}.", job.Id, job.VideoProjectId);
         }
-
         await SaveAsync(db, job, cancellationToken);
     }
 
@@ -134,23 +111,10 @@ public sealed class VideoProductionWorker(
         await SaveAsync(db, job, cancellationToken);
     }
 
-    private static async Task AddArtifactAsync(
-        YoutubeStudioDbContext db,
-        VideoProject project,
-        ProductionArtifactType type,
-        string providerAssetId,
-        string? content,
-        string? metadataJson,
-        CancellationToken cancellationToken)
+    private static async Task AddArtifactAsync(YoutubeStudioDbContext db, VideoProject project, ProductionArtifactType type,
+        string providerAssetId, string? content, string? metadataJson, CancellationToken cancellationToken)
     {
-        db.ProductionArtifacts.Add(new ProductionArtifact
-        {
-            VideoProjectId = project.Id,
-            Type = type,
-            ProviderAssetId = providerAssetId,
-            Content = content,
-            MetadataJson = metadataJson
-        });
+        db.ProductionArtifacts.Add(new ProductionArtifact { VideoProjectId = project.Id, Type = type, ProviderAssetId = providerAssetId, Content = content, MetadataJson = metadataJson });
         await db.SaveChangesAsync(cancellationToken);
     }
 
