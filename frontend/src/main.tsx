@@ -1,4 +1,5 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ArrowRight, Check, FileText, Loader2, Play, Sparkles } from 'lucide-react';
 import './index.css';
 
