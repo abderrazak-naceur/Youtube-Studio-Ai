@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Production;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/video-projects")]
-public sealed class VideoProjectsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class VideoProjectsController(
+    YoutubeStudioDbContext db,
+    IProductionJobService productionJobs) : ControllerBase
 {
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<VideoProjectResponse>> Get(Guid id, CancellationToken cancellationToken)
@@ -79,16 +82,9 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db) : Control
         if (project.Status is not VideoProjectStatus.Draft and not VideoProjectStatus.Failed)
             return Conflict("The video project is already running or completed.");
 
-        var job = new ProductionJob
-        {
-            VideoProjectId = project.Id,
-            Status = ProductionJobStatus.Queued
-        };
-
         project.Status = VideoProjectStatus.Researching;
         project.UpdatedAtUtc = DateTime.UtcNow;
-        db.ProductionJobs.Add(job);
-        await db.SaveChangesAsync(cancellationToken);
+        var job = await productionJobs.EnqueueAsync(project, cancellationToken);
 
         return AcceptedAtAction(nameof(Get), new { id = project.Id }, ToResponse(project, job));
     }
