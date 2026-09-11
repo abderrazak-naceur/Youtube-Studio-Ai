@@ -8,6 +8,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<Channel> Channels => Set<Channel>();
     public DbSet<Opportunity> Opportunities => Set<Opportunity>();
+    public DbSet<VideoProject> VideoProjects => Set<VideoProject>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,25 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
                 .WithMany(x => x.Opportunities)
                 .HasForeignKey(x => x.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.WorkspaceId, x.Status });
+        });
+
+        modelBuilder.Entity<VideoProject>(entity =>
+        {
+            entity.ToTable("video_projects");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Prompt).HasMaxLength(10000).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(500);
+            entity.Property(x => x.Script).HasMaxLength(100000);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.HasOne(x => x.Workspace)
+                .WithMany()
+                .HasForeignKey(x => x.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Channel)
+                .WithMany()
+                .HasForeignKey(x => x.ChannelId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.WorkspaceId, x.Status });
         });
     }
