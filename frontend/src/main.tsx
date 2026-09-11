@@ -24,7 +24,27 @@ type Artifact = {
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
-const stages: Stage[] = ['Researching', 'Scripted', 'Planned', 'Producing', 'Rendering', 'Qa', 'Completed'];
+const stages: Array<{ key: Stage; label: string; detail?: string }> = [
+  { key: 'Researching', label: 'Research' },
+  { key: 'Scripted', label: 'Script' },
+  { key: 'Planned', label: 'Scene Plan' },
+  { key: 'Producing', label: 'Production', detail: 'Visuals · Voice · Music/SFX · Captions' },
+  { key: 'Rendering', label: 'Edit / Render' },
+  { key: 'Qa', label: 'Quality Assurance' },
+  { key: 'Completed', label: 'Professional MP4' },
+];
+
+const artifactLabels: Record<string, string> = {
+  Research: 'Research',
+  Script: 'Script',
+  ScenePlan: 'Scene Plan',
+  Visual: 'Visuals',
+  Voice: 'Voice',
+  MusicSfx: 'Music / SFX',
+  Captions: 'Captions',
+  Render: 'Edit / Render',
+  Qa: 'Quality Assurance',
+};
 
 function App() {
   const [prompt, setPrompt] = useState('');
@@ -34,7 +54,7 @@ function App() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const currentIndex = useMemo(() => project ? stages.indexOf(project.status) : -1, [project]);
+  const currentIndex = useMemo(() => project ? stages.findIndex(stage => stage.key === project.status) : -1, [project]);
 
   useEffect(() => {
     if (!project || project.status === 'Completed' || project.status === 'Failed') return;
@@ -119,12 +139,15 @@ function App() {
               <div className="mt-6 space-y-4">
                 {stages.map((stage, index) => {
                   const done = currentIndex >= index && project.status !== 'Failed';
-                  const active = project.status === stage;
-                  return <div key={stage} className="flex items-center gap-3 text-sm">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full border ${done ? 'border-zinc-300 bg-zinc-100 text-zinc-950' : 'border-zinc-700 text-zinc-600'}`}>
+                  const active = project.status === stage.key;
+                  return <div key={stage.key} className="flex items-start gap-3 text-sm">
+                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${done ? 'border-zinc-300 bg-zinc-100 text-zinc-950' : 'border-zinc-700 text-zinc-600'}`}>
                       {done && !active ? <Check size={15} /> : active ? <Loader2 size={15} className="animate-spin" /> : index + 1}
                     </div>
-                    <span className={done ? 'text-zinc-100' : 'text-zinc-500'}>{stage === 'Qa' ? 'Quality Assurance' : stage}</span>
+                    <div>
+                      <span className={done ? 'text-zinc-100' : 'text-zinc-500'}>{stage.label}</span>
+                      {stage.detail && <p className="mt-1 text-xs text-zinc-600">{stage.detail}</p>}
+                    </div>
                   </div>;
                 })}
               </div>
@@ -145,7 +168,7 @@ function App() {
               {artifacts.map(artifact => (
                 <article key={artifact.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm font-medium">{artifact.type}</span>
+                    <span className="text-sm font-medium">{artifactLabels[artifact.type] ?? artifact.type}</span>
                     <span className="text-xs text-zinc-500">{new Date(artifact.createdAtUtc).toLocaleString()}</span>
                   </div>
                   {artifact.content ? (
