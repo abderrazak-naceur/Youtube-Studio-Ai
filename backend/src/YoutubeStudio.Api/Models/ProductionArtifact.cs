@@ -3,6 +3,7 @@ namespace YoutubeStudio.Api.Models;
 public enum ProductionArtifactType
 {
     Research,
+    Script,
     ScenePlan,
     Voice,
     Visual,
