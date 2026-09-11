@@ -40,8 +40,7 @@ public sealed class WorkspaceChannelControllerTests
             new CreateWorkspaceRequest("   "),
             CancellationToken.None);
 
-        Assert.IsType<ObjectResult>(result.Result);
-        var validation = Assert.IsType<ObjectResult>(result.Result);
+        var validation = Assert.IsAssignableFrom<ObjectResult>(result.Result);
         Assert.Equal(400, validation.StatusCode);
     }
 
@@ -96,7 +95,7 @@ public sealed class WorkspaceChannelControllerTests
             new CreateChannelRequest(workspace.Id, "My channel", "tiktok"),
             CancellationToken.None);
 
-        var validation = Assert.IsType<ObjectResult>(result.Result);
+        var validation = Assert.IsAssignableFrom<ObjectResult>(result.Result);
         Assert.Equal(400, validation.StatusCode);
     }
 
