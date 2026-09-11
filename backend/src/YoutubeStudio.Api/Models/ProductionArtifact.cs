@@ -7,6 +7,7 @@ public enum ProductionArtifactType
     ScenePlan,
     Voice,
     Visual,
+    MusicSfx,
     Captions,
     Render,
     Qa
