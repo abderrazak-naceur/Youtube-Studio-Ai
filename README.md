@@ -56,7 +56,7 @@ The first objective is to prove a reliable production loop before adding large-s
 - VideoProject model and API
 - Persistent production jobs
 - Video production job enqueue service
-- Provider abstraction layer for research, script, scene planning, voice, visuals, captions, rendering and QA
+- Provider abstraction layer for research, script, scene planning, voice, visuals, music/SFX, captions, rendering and QA
 - React + Vite + TypeScript frontend foundation
 - Tailwind CSS
 - Backend unit tests for the first video-project slice
@@ -74,6 +74,8 @@ Planned
   ↓
 Producing
   ↓
+  Voice + Visuals + Music/SFX
+  ↓
 Rendering
   ↓
 QA
@@ -81,7 +83,7 @@ QA
 Completed
 ```
 
-The current implementation uses placeholders and provider interfaces where real AI credentials are not yet required. This keeps the architecture replaceable and testable while the core workflow is built.
+The current implementation uses placeholders and provider interfaces where real AI credentials are not yet required. This keeps the architecture replaceable and testable while the core workflow is built. Music/SFX is represented as its own provider boundary and persisted production artifact before rendering.
 
 ---
 
@@ -346,7 +348,7 @@ For the video pipeline, QA will ultimately cover technical validity, editorial q
 
 Prove:
 
-**idea → research → script → scene plan → voice → visuals → edit → captions → thumbnail → metadata → MP4**
+**idea → research → script → scene plan → voice → visuals → music/SFX → edit → captions → thumbnail → metadata → MP4**
 
 ### 2027 — YouTube OS
 
