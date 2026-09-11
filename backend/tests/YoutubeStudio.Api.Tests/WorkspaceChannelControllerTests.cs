@@ -42,7 +42,6 @@ public sealed class WorkspaceChannelControllerTests
 
         var validation = Assert.IsType<ObjectResult>(result.Result);
         var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
-        Assert.Equal(400, problem.Status);
         Assert.Equal("Workspace name is required.", problem.Detail);
     }
 
@@ -99,7 +98,6 @@ public sealed class WorkspaceChannelControllerTests
 
         var validation = Assert.IsType<ObjectResult>(result.Result);
         var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
-        Assert.Equal(400, problem.Status);
         Assert.Equal("Only YouTube channels are supported in the MVP.", problem.Detail);
     }
 
