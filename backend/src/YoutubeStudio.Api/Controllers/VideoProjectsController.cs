@@ -22,7 +22,12 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db) : Control
                 x.Prompt,
                 x.Status.ToString(),
                 x.Title,
-                x.Script))
+                x.Script,
+                db.ProductionJobs
+                    .Where(job => job.VideoProjectId == x.Id)
+                    .OrderByDescending(job => job.CreatedAtUtc)
+                    .Select(job => new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.Error))
+                    .FirstOrDefault()))
             .SingleOrDefaultAsync(cancellationToken);
 
         return project is null ? NotFound() : Ok(project);
@@ -64,9 +69,34 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db) : Control
         return CreatedAtAction(nameof(Get), new { id = project.Id }, ToResponse(project));
     }
 
-    private static VideoProjectResponse ToResponse(VideoProject project) =>
+    [HttpPost("{id:guid}/start")]
+    public async Task<ActionResult<VideoProjectResponse>> Start(Guid id, CancellationToken cancellationToken)
+    {
+        var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null)
+            return NotFound();
+
+        if (project.Status is not VideoProjectStatus.Draft and not VideoProjectStatus.Failed)
+            return Conflict("The video project is already running or completed.");
+
+        var job = new ProductionJob
+        {
+            VideoProjectId = project.Id,
+            Status = ProductionJobStatus.Queued
+        };
+
+        project.Status = VideoProjectStatus.Researching;
+        project.UpdatedAtUtc = DateTime.UtcNow;
+        db.ProductionJobs.Add(job);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return AcceptedAtAction(nameof(Get), new { id = project.Id }, ToResponse(project, job));
+    }
+
+    private static VideoProjectResponse ToResponse(VideoProject project, ProductionJob? job = null) =>
         new(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt,
-            project.Status.ToString(), project.Title, project.Script);
+            project.Status.ToString(), project.Title, project.Script,
+            job is null ? null : new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.Error));
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
@@ -78,4 +108,7 @@ public sealed record VideoProjectResponse(
     string Prompt,
     string Status,
     string? Title,
-    string? Script);
+    string? Script,
+    ProductionJobResponse? LatestJob);
+
+public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? Error);
