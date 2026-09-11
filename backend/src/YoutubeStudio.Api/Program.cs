@@ -20,6 +20,7 @@ builder.Services.AddScoped<IScriptProvider, PlaceholderScriptProvider>();
 builder.Services.AddScoped<IScenePlanProvider, PlaceholderScenePlanProvider>();
 builder.Services.AddScoped<IVoiceProvider, PlaceholderVoiceProvider>();
 builder.Services.AddScoped<IVisualProvider, PlaceholderVisualProvider>();
+builder.Services.AddScoped<IMusicSfxProvider, PlaceholderMusicSfxProvider>();
 builder.Services.AddScoped<ICaptionProvider, PlaceholderCaptionProvider>();
 builder.Services.AddScoped<IRenderProvider, PlaceholderRenderProvider>();
 builder.Services.AddScoped<IQaProvider, PlaceholderQaProvider>();
