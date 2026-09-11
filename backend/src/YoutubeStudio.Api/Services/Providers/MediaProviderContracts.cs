@@ -16,6 +16,9 @@ public sealed record VoiceResult(string ProviderAssetId, TimeSpan Duration);
 public sealed record VisualRequest(string VisualDirection, int DurationSeconds);
 public sealed record VisualResult(string ProviderAssetId, string MediaType);
 
+public sealed record MusicSfxRequest(string Title, string Script, int DurationSeconds);
+public sealed record MusicSfxResult(string ProviderAssetId, string MediaType);
+
 public sealed record CaptionRequest(string Script);
 public sealed record CaptionResult(string ProviderAssetId);
 
@@ -48,6 +51,11 @@ public interface IVoiceProvider
 public interface IVisualProvider
 {
     Task<VisualResult> GenerateVisualAsync(VisualRequest request, CancellationToken cancellationToken);
+}
+
+public interface IMusicSfxProvider
+{
+    Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken);
 }
 
 public interface ICaptionProvider
