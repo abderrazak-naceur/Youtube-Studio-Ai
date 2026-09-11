@@ -65,6 +65,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
             entity.Property(x => x.Error).HasMaxLength(4000);
+            entity.Property(x => x.LastCompletedStage).HasMaxLength(50);
             entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc });
         });
