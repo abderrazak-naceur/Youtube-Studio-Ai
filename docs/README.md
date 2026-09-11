@@ -16,7 +16,7 @@ The primary optimization target is **net business value per published video**, n
 - `company/` — organization, roles and operating model
 - `finance/` — costs, OPEX, cash flow and break-even
 - `cloud/` — AWS, DigitalOcean, architecture, scaling and cloud costs
-- `technology/` — concrete technology stack, development standards and phase-by-phase technology plan
+- `technology/` — technology decisions, frontend/backend plans and development business plan
 - `product/` — requirements and product rules
 - `architecture/` — system and AI-agent architecture
 - `data/` — domain model, schema and events
@@ -36,6 +36,18 @@ The primary optimization target is **net business value per published video**, n
 - `roadmap/` — implementation phases and milestones
 - `implementation/` — executable engineering backlog
 - `operations/` — quality gates and operating procedures
+
+## Technology source of truth
+
+For the current frontend/backend decision, use these documents in this order:
+
+1. `technology/TECHNOLOGY-STACK-DECISION.md` — Vite frontend decision
+2. `technology/FRONTEND-TECHNOLOGY-BUSINESS-PLAN.md` — frontend architecture and delivery plan
+3. `technology/BACKEND-TECHNOLOGY-BUSINESS-PLAN.md` — backend architecture and delivery plan
+4. `technology/TECHNOLOGY-DEVELOPMENT-BUSINESS-PLAN.md` — company-wide 2026–2030 technology investment plan
+5. `technology/TECHNOLOGY-STACK-PLAN.md` — original broader stack reference
+
+The explicit frontend decision is now **Vite + React + TypeScript + Tailwind CSS**. The backend remains **ASP.NET Core + .NET 10 LTS + C#**.
 
 ## Company architecture
 
@@ -65,18 +77,17 @@ The architecture must remain portable so the company can use both AWS and Digita
 
 The planned core stack is:
 
-- Next.js + React + TypeScript for the web application
-- Tailwind CSS + shadcn/ui for the design system
+- Vite + React + TypeScript for the web application
+- Tailwind CSS + Radix-based design system
 - ASP.NET Core on .NET 10 LTS + C# for the backend
 - PostgreSQL + pgvector for system data and semantic retrieval
 - Redis-compatible cache for transient state and coordination
 - asynchronous workers for AI/media jobs
+- SignalR for real-time progress and approvals
 - Docker + Terraform/OpenTofu for portability
 - FFmpeg for media processing
 - OpenTelemetry for observability
 - Model Router for all AI provider calls
-
-See `technology/TECHNOLOGY-STACK-PLAN.md` for the complete phase-by-phase plan.
 
 ## AI provider strategy
 
