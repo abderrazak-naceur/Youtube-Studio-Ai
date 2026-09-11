@@ -9,6 +9,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<Channel> Channels => Set<Channel>();
     public DbSet<Opportunity> Opportunities => Set<Opportunity>();
     public DbSet<VideoProject> VideoProjects => Set<VideoProject>();
+    public DbSet<ProductionJob> ProductionJobs => Set<ProductionJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +68,19 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
                 .HasForeignKey(x => x.ChannelId)
                 .OnDelete(DeleteBehavior.SetNull);
             entity.HasIndex(x => new { x.WorkspaceId, x.Status });
+        });
+
+        modelBuilder.Entity<ProductionJob>(entity =>
+        {
+            entity.ToTable("production_jobs");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Error).HasMaxLength(4000);
+            entity.HasOne(x => x.VideoProject)
+                .WithMany()
+                .HasForeignKey(x => x.VideoProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc });
         });
     }
 }
