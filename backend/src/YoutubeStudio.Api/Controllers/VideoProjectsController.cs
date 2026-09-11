@@ -15,7 +15,11 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
     {
         var project = await db.VideoProjects.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
-        var job = await db.ProductionJobs.AsNoTracking().Where(x => x.VideoProjectId == id).OrderByDescending(x => x.CreatedAtUtc).Select(x => new ProductionJobResponse(x.Id, x.Status.ToString(), x.Attempt, x.Error)).FirstOrDefaultAsync(cancellationToken);
+        var job = await db.ProductionJobs.AsNoTracking()
+            .Where(x => x.VideoProjectId == id)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Select(x => new ProductionJobResponse(x.Id, x.Status.ToString(), x.Attempt, x.LastCompletedStage, x.Error))
+            .FirstOrDefaultAsync(cancellationToken);
         return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, job));
     }
 
@@ -23,7 +27,11 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
     public async Task<ActionResult<PipelineResponse>> GetPipeline(Guid id, CancellationToken cancellationToken)
     {
         if (!await db.VideoProjects.AnyAsync(x => x.Id == id, cancellationToken)) return NotFound();
-        var artifacts = await db.ProductionArtifacts.AsNoTracking().Where(x => x.VideoProjectId == id).OrderBy(x => x.CreatedAtUtc).Select(x => new PipelineArtifactResponse(x.Id, x.Type.ToString(), x.ProviderAssetId, x.Content, x.MetadataJson, x.CreatedAtUtc)).ToListAsync(cancellationToken);
+        var artifacts = await db.ProductionArtifacts.AsNoTracking()
+            .Where(x => x.VideoProjectId == id)
+            .OrderBy(x => x.CreatedAtUtc)
+            .Select(x => new PipelineArtifactResponse(x.Id, x.Type.ToString(), x.ProviderAssetId, x.Content, x.MetadataJson, x.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
         return Ok(new PipelineResponse(id, artifacts));
     }
 
@@ -48,12 +56,12 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
         project.Status = VideoProjectStatus.Researching;
         project.UpdatedAtUtc = DateTime.UtcNow;
         var job = await productionJobs.EnqueueAsync(project, cancellationToken);
-        return AcceptedAtAction(nameof(Get), new { id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.Error)));
+        return AcceptedAtAction(nameof(Get), new { id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.LastCompletedStage, job.Error)));
     }
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
 public sealed record VideoProjectResponse(Guid Id, Guid WorkspaceId, Guid? ChannelId, string Prompt, string Status, string? Title, string? Script, ProductionJobResponse? LatestJob);
-public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? Error);
+public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? LastCompletedStage, string? Error);
 public sealed record PipelineResponse(Guid VideoProjectId, IReadOnlyList<PipelineArtifactResponse> Artifacts);
 public sealed record PipelineArtifactResponse(Guid Id, string Type, string ProviderAssetId, string? Content, string? MetadataJson, DateTime CreatedAtUtc);
