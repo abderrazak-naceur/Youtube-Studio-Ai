@@ -9,6 +9,22 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: youtube_studio_ai
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d youtube_studio_ai"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=youtube_studio_ai;Username=postgres;Password=postgres
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -16,6 +32,10 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet restore backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
       - run: dotnet build backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --no-restore
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 10.0.0
+      - name: Apply EF Core migrations
+        run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
       - run: dotnet test backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
 
   frontend:
