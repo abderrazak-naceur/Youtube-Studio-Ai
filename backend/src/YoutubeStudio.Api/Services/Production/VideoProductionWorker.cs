@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Services.Production;
 
@@ -38,6 +39,14 @@ public sealed class VideoProductionWorker(
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<YoutubeStudioDbContext>();
+        var research = scope.ServiceProvider.GetRequiredService<IResearchProvider>();
+        var script = scope.ServiceProvider.GetRequiredService<IScriptProvider>();
+        var scenePlan = scope.ServiceProvider.GetRequiredService<IScenePlanProvider>();
+        var voice = scope.ServiceProvider.GetRequiredService<IVoiceProvider>();
+        var visual = scope.ServiceProvider.GetRequiredService<IVisualProvider>();
+        var captions = scope.ServiceProvider.GetRequiredService<ICaptionProvider>();
+        var render = scope.ServiceProvider.GetRequiredService<IRenderProvider>();
+        var qa = scope.ServiceProvider.GetRequiredService<IQaProvider>();
 
         var job = await db.ProductionJobs
             .Include(x => x.VideoProject)
@@ -53,13 +62,58 @@ public sealed class VideoProductionWorker(
 
         job.Status = ProductionJobStatus.Running;
         job.VideoProject.Status = VideoProjectStatus.Researching;
-        job.VideoProject.UpdatedAtUtc = DateTime.UtcNow;
-        job.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
+        await SaveAsync(db, job, cancellationToken);
 
         try
         {
-            await RunPlaceholderPipelineAsync(job.VideoProject, db, cancellationToken);
+            var researchResult = await research.ResearchAsync(
+                new ResearchRequest(job.VideoProject.Prompt), cancellationToken);
+            job.VideoProject.Status = VideoProjectStatus.Scripted;
+            await SaveAsync(db, job, cancellationToken);
+
+            var scriptResult = await script.GenerateScriptAsync(
+                new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
+            job.VideoProject.Title = scriptResult.Title;
+            job.VideoProject.Script = scriptResult.Script;
+            job.VideoProject.Status = VideoProjectStatus.Planned;
+            await SaveAsync(db, job, cancellationToken);
+
+            var planResult = await scenePlan.CreateScenePlanAsync(
+                new ScenePlanRequest(scriptResult.Title, scriptResult.Script), cancellationToken);
+            job.VideoProject.Status = VideoProjectStatus.Producing;
+            await SaveAsync(db, job, cancellationToken);
+
+            var voiceResult = await voice.GenerateVoiceAsync(
+                new VoiceRequest(scriptResult.Script, null), cancellationToken);
+
+            var visualAssetIds = new List<string>();
+            foreach (var scene in planResult.Scenes)
+            {
+                var visualResult = await visual.GenerateVisualAsync(
+                    new VisualRequest(scene.VisualDirection, scene.DurationSeconds), cancellationToken);
+                visualAssetIds.Add(visualResult.ProviderAssetId);
+            }
+
+            var captionResult = await captions.GenerateCaptionsAsync(
+                new CaptionRequest(scriptResult.Script), cancellationToken);
+
+            job.VideoProject.Status = VideoProjectStatus.Rendering;
+            await SaveAsync(db, job, cancellationToken);
+
+            var renderResult = await render.RenderAsync(
+                new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], null),
+                cancellationToken);
+
+            job.VideoProject.Status = VideoProjectStatus.Qa;
+            await SaveAsync(db, job, cancellationToken);
+
+            var qaResult = await qa.EvaluateAsync(
+                new QaRequest(scriptResult.Title, scriptResult.Script, renderResult.ProviderAssetId),
+                cancellationToken);
+
+            if (!qaResult.Passed)
+                throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
+
             job.Status = ProductionJobStatus.Succeeded;
             job.VideoProject.Status = VideoProjectStatus.Completed;
             job.Error = null;
@@ -76,53 +130,16 @@ public sealed class VideoProductionWorker(
             logger.LogError(exception, "Production job {JobId} failed for project {ProjectId}.", job.Id, job.VideoProjectId);
         }
 
+        await SaveAsync(db, job, cancellationToken);
+    }
+
+    private static async Task SaveAsync(
+        YoutubeStudioDbContext db,
+        ProductionJob job,
+        CancellationToken cancellationToken)
+    {
         job.UpdatedAtUtc = DateTime.UtcNow;
         job.VideoProject.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
     }
-
-    private static async Task RunPlaceholderPipelineAsync(
-        VideoProject project,
-        YoutubeStudioDbContext db,
-        CancellationToken cancellationToken)
-    {
-        project.Status = VideoProjectStatus.Researching;
-        await SaveStageAsync(db, project, cancellationToken);
-
-        project.Status = VideoProjectStatus.Scripted;
-        project.Title ??= BuildTitle(project.Prompt);
-        project.Script ??= BuildPlaceholderScript(project.Prompt);
-        await SaveStageAsync(db, project, cancellationToken);
-
-        project.Status = VideoProjectStatus.Planned;
-        await SaveStageAsync(db, project, cancellationToken);
-
-        project.Status = VideoProjectStatus.Producing;
-        await SaveStageAsync(db, project, cancellationToken);
-
-        project.Status = VideoProjectStatus.Rendering;
-        await SaveStageAsync(db, project, cancellationToken);
-
-        project.Status = VideoProjectStatus.Qa;
-        await SaveStageAsync(db, project, cancellationToken);
-    }
-
-    private static async Task SaveStageAsync(
-        YoutubeStudioDbContext db,
-        VideoProject project,
-        CancellationToken cancellationToken)
-    {
-        project.UpdatedAtUtc = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
-        await Task.Yield();
-    }
-
-    private static string BuildTitle(string prompt)
-    {
-        var normalized = string.Join(' ', prompt.Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        return normalized.Length <= 120 ? normalized : normalized[..120].TrimEnd() + "…";
-    }
-
-    private static string BuildPlaceholderScript(string prompt) =>
-        $"HOOK: {prompt.Trim()}\n\nBODY: This is a production placeholder. The real Research and Script providers will replace this stage.\n\nCTA: Continue to the next production stage.";
 }
