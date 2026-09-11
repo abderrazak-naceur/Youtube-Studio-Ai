@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -67,6 +66,65 @@ public sealed class VideoProjectsControllerTests
         Assert.Equal("Create a video about AI", response.Prompt);
         Assert.Equal(nameof(VideoProjectStatus.Draft), response.Status);
         Assert.NotEqual(Guid.Empty, response.Id);
+    }
+
+    [Fact]
+    public async Task Start_enqueues_job_and_moves_project_to_researching()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var project = new VideoProject
+        {
+            WorkspaceId = workspace.Id,
+            Prompt = "Create a video about AI",
+            Status = VideoProjectStatus.Draft
+        };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.Start(project.Id, CancellationToken.None);
+
+        var accepted = Assert.IsType<AcceptedAtActionResult>(result.Result);
+        var response = Assert.IsType<VideoProjectResponse>(accepted.Value);
+        Assert.Equal(nameof(VideoProjectStatus.Researching), response.Status);
+        Assert.NotNull(response.LatestJob);
+        Assert.Equal(nameof(ProductionJobStatus.Queued), response.LatestJob!.Status);
+
+        var persisted = await db.VideoProjects.SingleAsync(x => x.Id == project.Id);
+        var job = await db.ProductionJobs.SingleAsync(x => x.VideoProjectId == project.Id);
+        Assert.Equal(VideoProjectStatus.Researching, persisted.Status);
+        Assert.Equal(ProductionJobStatus.Queued, job.Status);
+    }
+
+    [Fact]
+    public async Task Start_does_not_create_duplicate_job_when_project_is_already_running()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var project = new VideoProject
+        {
+            WorkspaceId = workspace.Id,
+            Prompt = "Create a video about AI",
+            Status = VideoProjectStatus.Draft
+        };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var first = await controller.Start(project.Id, CancellationToken.None);
+        Assert.IsType<AcceptedAtActionResult>(first.Result);
+
+        var second = await controller.Start(project.Id, CancellationToken.None);
+        var conflict = Assert.IsType<ConflictObjectResult>(second.Result);
+        Assert.Equal("The video project is already running or completed.", conflict.Value);
+        Assert.Equal(1, await db.ProductionJobs.CountAsync(x => x.VideoProjectId == project.Id));
     }
 
     private static VideoProjectsController CreateController(YoutubeStudioDbContext db) =>
