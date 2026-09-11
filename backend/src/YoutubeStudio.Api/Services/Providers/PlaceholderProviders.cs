@@ -44,6 +44,12 @@ public sealed class PlaceholderVisualProvider : IVisualProvider
         Task.FromResult(new VisualResult("placeholder-visual", "placeholder"));
 }
 
+public sealed class PlaceholderMusicSfxProvider : IMusicSfxProvider
+{
+    public Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken) =>
+        Task.FromResult(new MusicSfxResult("placeholder-music-sfx", "placeholder-audio"));
+}
+
 public sealed class PlaceholderCaptionProvider : ICaptionProvider
 {
     public Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken) =>
