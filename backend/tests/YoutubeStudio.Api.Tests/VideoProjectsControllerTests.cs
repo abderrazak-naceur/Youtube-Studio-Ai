@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +8,7 @@ using Xunit;
 using YoutubeStudio.Api.Controllers;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Production;
 
 namespace YoutubeStudio.Api.Tests;
 
@@ -14,7 +18,7 @@ public sealed class VideoProjectsControllerTests
     public async Task Create_rejects_missing_workspace()
     {
         await using var db = CreateDb();
-        var controller = new VideoProjectsController(db);
+        var controller = CreateController(db);
 
         var result = await controller.Create(
             new CreateVideoProjectRequest(Guid.NewGuid(), null, "Create a video about AI"),
@@ -36,7 +40,7 @@ public sealed class VideoProjectsControllerTests
         db.Channels.Add(channel);
         await db.SaveChangesAsync();
 
-        var controller = new VideoProjectsController(db);
+        var controller = CreateController(db);
         var result = await controller.Create(
             new CreateVideoProjectRequest(workspace.Id, channel.Id, "Create a video about AI"),
             CancellationToken.None);
@@ -53,7 +57,7 @@ public sealed class VideoProjectsControllerTests
         db.Workspaces.Add(workspace);
         await db.SaveChangesAsync();
 
-        var controller = new VideoProjectsController(db);
+        var controller = CreateController(db);
         var result = await controller.Create(
             new CreateVideoProjectRequest(workspace.Id, null, "  Create a video about AI  "),
             CancellationToken.None);
@@ -64,6 +68,9 @@ public sealed class VideoProjectsControllerTests
         Assert.Equal(nameof(VideoProjectStatus.Draft), response.Status);
         Assert.NotEqual(Guid.Empty, response.Id);
     }
+
+    private static VideoProjectsController CreateController(YoutubeStudioDbContext db) =>
+        new(db, new ProductionJobService(db));
 
     private static YoutubeStudioDbContext CreateDb()
     {
