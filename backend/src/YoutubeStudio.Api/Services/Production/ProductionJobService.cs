@@ -14,7 +14,8 @@ public sealed class ProductionJobService(YoutubeStudioDbContext db) : IProductio
     public async Task<ProductionJob> EnqueueAsync(VideoProject project, CancellationToken cancellationToken)
     {
         var existing = await db.ProductionJobs
-            .Where(x => x.VideoProjectId == project.Id && x.Status is ProductionJobStatus.Queued or ProductionJobStatus.Running)
+            .Where(x => x.VideoProjectId == project.Id &&
+                        (x.Status == ProductionJobStatus.Queued || x.Status == ProductionJobStatus.Running))
             .OrderByDescending(x => x.CreatedAtUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
