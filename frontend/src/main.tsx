@@ -1,6 +1,5 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { ArrowRight, Check, Loader2, Play, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, FileText, Loader2, Play, Sparkles } from 'lucide-react';
 import './index.css';
 
 type Stage = 'Draft' | 'Researching' | 'Scripted' | 'Planned' | 'Producing' | 'Rendering' | 'Qa' | 'Completed' | 'Failed';
@@ -15,6 +14,15 @@ type Project = {
   script?: string | null;
 };
 
+type Artifact = {
+  id: string;
+  type: string;
+  providerAssetId: string;
+  content?: string | null;
+  metadataJson?: string | null;
+  createdAtUtc: string;
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 const stages: Stage[] = ['Researching', 'Scripted', 'Planned', 'Producing', 'Rendering', 'Qa', 'Completed'];
 
@@ -22,6 +30,7 @@ function App() {
   const [prompt, setPrompt] = useState('');
   const [workspaceId, setWorkspaceId] = useState('');
   const [project, setProject] = useState<Project | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -29,23 +38,31 @@ function App() {
 
   useEffect(() => {
     if (!project || project.status === 'Completed' || project.status === 'Failed') return;
-    const timer = window.setInterval(async () => {
+
+    const refresh = async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/v1/video-projects/${project.id}`);
-        if (!response.ok) return;
-        setProject(await response.json());
+        const [projectResponse, artifactsResponse] = await Promise.all([
+          fetch(`${API_BASE}/api/v1/video-projects/${project.id}`),
+          fetch(`${API_BASE}/api/v1/video-projects/${project.id}/artifacts`)
+        ]);
+        if (projectResponse.ok) setProject(await projectResponse.json());
+        if (artifactsResponse.ok) setArtifacts(await artifactsResponse.json());
       } catch {
         // The worker may be temporarily unavailable; keep the current UI state.
       }
-    }, 2000);
+    };
+
+    void refresh();
+    const timer = window.setInterval(refresh, 2000);
     return () => window.clearInterval(timer);
-  }, [project]);
+  }, [project?.id, project?.status]);
 
   async function createVideo() {
     setError('');
     if (!workspaceId.trim()) return setError('Inserisci il Workspace ID.');
     if (!prompt.trim()) return setError('Scrivi l’idea del video.');
     setBusy(true);
+    setArtifacts([]);
     try {
       const createResponse = await fetch(`${API_BASE}/api/v1/video-projects`, {
         method: 'POST',
@@ -115,11 +132,30 @@ function App() {
           </div>
         </section>
 
-        {project?.script && (
+        {project && artifacts.length > 0 && (
           <section className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Generated script</p>
-            <h2 className="mt-2 text-xl font-semibold">{project.title}</h2>
-            <pre className="mt-4 whitespace-pre-wrap font-sans text-sm leading-7 text-zinc-300">{project.script}</pre>
+            <div className="flex items-center gap-2">
+              <FileText size={18} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Generated artifacts</p>
+                <h2 className="mt-1 text-xl font-semibold">Production output</h2>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {artifacts.map(artifact => (
+                <article key={artifact.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium">{artifact.type}</span>
+                    <span className="text-xs text-zinc-500">{new Date(artifact.createdAtUtc).toLocaleString()}</span>
+                  </div>
+                  {artifact.content ? (
+                    <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap font-sans text-sm leading-6 text-zinc-300">{artifact.content}</pre>
+                  ) : (
+                    <p className="mt-3 text-sm text-zinc-500">Asset pronto: {artifact.providerAssetId}</p>
+                  )}
+                </article>
+              ))}
+            </div>
           </section>
         )}
       </div>
