@@ -40,8 +40,10 @@ public sealed class WorkspaceChannelControllerTests
             new CreateWorkspaceRequest("   "),
             CancellationToken.None);
 
-        var validation = Assert.IsAssignableFrom<ObjectResult>(result.Result);
-        Assert.Equal(400, validation.StatusCode);
+        var validation = Assert.IsType<ObjectResult>(result.Result);
+        var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("Workspace name is required.", problem.Detail);
     }
 
     [Fact]
@@ -95,8 +97,10 @@ public sealed class WorkspaceChannelControllerTests
             new CreateChannelRequest(workspace.Id, "My channel", "tiktok"),
             CancellationToken.None);
 
-        var validation = Assert.IsAssignableFrom<ObjectResult>(result.Result);
-        Assert.Equal(400, validation.StatusCode);
+        var validation = Assert.IsType<ObjectResult>(result.Result);
+        var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
+        Assert.Equal(400, problem.Status);
+        Assert.Equal("Only YouTube channels are supported in the MVP.", problem.Detail);
     }
 
     private static YoutubeStudioDbContext CreateDb()
