@@ -16,6 +16,7 @@ The primary optimization target is **net business value per published video**, n
 - `company/` — organization, roles and operating model
 - `finance/` — costs, OPEX, cash flow and break-even
 - `cloud/` — AWS, DigitalOcean, architecture, scaling and cloud costs
+- `technology/` — concrete technology stack, development standards and phase-by-phase technology plan
 - `product/` — requirements and product rules
 - `architecture/` — system and AI-agent architecture
 - `data/` — domain model, schema and events
@@ -29,7 +30,7 @@ The primary optimization target is **net business value per published video**, n
 - `analytics/` — performance intelligence and experimentation
 - `revenue/` — monetization, profitability and AI CFO
 - `security/` — security, permissions, rights and compliance
-- `ux-ui/` — information architecture, screens, flows and design system
+- `ux-ui/` — information architecture, screens, flows, design system and visual references
 - `workflows/` — end-to-end business and technical workflows
 - `testing/` — engineering and AI evaluation strategy
 - `roadmap/` — implementation phases and milestones
@@ -60,6 +61,23 @@ The default 2026 strategy is **DigitalOcean-first + external AI providers**, wit
 
 The architecture must remain portable so the company can use both AWS and DigitalOcean without rewriting the product.
 
+## Technology strategy
+
+The planned core stack is:
+
+- Next.js + React + TypeScript for the web application
+- Tailwind CSS + shadcn/ui for the design system
+- ASP.NET Core on .NET 10 LTS + C# for the backend
+- PostgreSQL + pgvector for system data and semantic retrieval
+- Redis-compatible cache for transient state and coordination
+- asynchronous workers for AI/media jobs
+- Docker + Terraform/OpenTofu for portability
+- FFmpeg for media processing
+- OpenTelemetry for observability
+- Model Router for all AI provider calls
+
+See `technology/TECHNOLOGY-STACK-PLAN.md` for the complete phase-by-phase plan.
+
 ## AI provider strategy
 
 AI providers are adapters behind a Model Router. Initial targets include:
@@ -75,15 +93,18 @@ Every provider call records usage and cost so customer and video profitability c
 
 The application is designed as a professional operating system, not a collection of chat screens. The UI exposes the business loop, explains AI recommendations, shows cost before expensive actions and keeps sensitive actions permissioned.
 
+Visual UI references are stored under `ux-ui/images/` with a rendered gallery in `ux-ui/images/README.md`.
+
 ## Source of truth hierarchy
 
 1. Product and legal constraints
 2. Business strategy and financial constraints
 3. Architecture decisions
-4. Product requirements
-5. Implementation backlog
-6. Code
-7. Experiments and hypotheses
+4. Technology decisions
+5. Product requirements
+6. Implementation backlog
+7. Code
+8. Experiments and hypotheses
 
 When documents conflict, update the higher-level source of truth first and reconcile downstream documents.
 
