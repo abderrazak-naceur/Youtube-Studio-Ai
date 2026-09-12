@@ -33,10 +33,11 @@ describe('ResearchClaimsPanel', () => {
     fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: /Add claim/i }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('http://api.test/api/v1/research-projects/project-1/claims', expect.objectContaining({
+    const expectedCreate = {
       method: 'POST',
       body: JSON.stringify({ workspaceId: 'workspace-1', text: 'New claim', evidenceIds: ['evidence-1'], verificationStatus: 'unverified' })
-    }));
+    };
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('http://api.test/api/v1/research-projects/project-1/claims', expectedCreate));
   });
 
   it('updates claim verification with workspace scope and refreshes the claim state', async () => {
@@ -51,10 +52,11 @@ describe('ResearchClaimsPanel', () => {
     expect(await screen.findByText('Claim')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Mark verified' }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('http://api.test/api/v1/research-projects/project-1/claims/claim-1/verification', expect.objectContaining({
+    const expectedVerification = {
       method: 'PUT',
       body: JSON.stringify({ workspaceId: 'workspace-1', verificationStatus: 'verified' })
-    }));
+    };
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('http://api.test/api/v1/research-projects/project-1/claims/claim-1/verification', expectedVerification));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   });
