@@ -16,6 +16,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
         modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 63);
         modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
+        modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b =>
@@ -28,7 +29,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b =>
         {
-            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<string>("AudienceProblem").HasColumnType("text"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<decimal>("OpportunityScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<decimal>("RevenueScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<string>("Rationale").HasColumnType("text"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_opportunities"); b.HasIndex("WorkspaceId", "Status").HasDatabaseName("ix_opportunities_workspace_id_status"); b.ToTable("opportunities");
+            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<string>("AudienceProblem").HasColumnType("text"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<decimal>("OpportunityScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<decimal>("RevenueScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<string>("Rationale").HasColumnType("text"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_opportunities"); b.HasIndex("WorkspaceId", "Status").HasDatabaseName("ix_opportunities_workspace_id_status"); b.ToTable("opportunities");
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b =>
         {
