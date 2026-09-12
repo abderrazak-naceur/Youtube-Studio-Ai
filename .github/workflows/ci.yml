@@ -85,15 +85,15 @@ jobs:
             }
           done
 
-          schema=$(PGPASSWORD=postgres psql \
+          PGPASSWORD=postgres psql \
             --host=localhost \
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
-            --command="SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('workspaces','video_projects','production_jobs','production_artifacts','research_projects','research_sources','research_evidence','research_claims','research_claim_evidence') ORDER BY table_name;" \
-            --tuples-only \
-            --no-align)
-          printf 'Production tables:\n%s\n' "$schema"
+            --command="\\copy (SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('workspaces','video_projects','production_jobs','production_artifacts','research_projects','research_sources','research_evidence','research_claims','research_claim_evidence') ORDER BY table_name) TO STDOUT WITH (FORMAT csv, HEADER false)" \
+            > migration-schema.txt
+          printf 'Production tables:\n'
+          cat migration-schema.txt
 
           expected_tables=(
             workspaces
@@ -107,7 +107,7 @@ jobs:
             research_claim_evidence
           )
           for table in "${expected_tables[@]}"; do
-            grep -Fxq "$table" <<<"$schema" || {
+            grep -Fxq "$table" migration-schema.txt || {
               echo "Missing production table: $table"
               exit 1
             }
@@ -118,9 +118,9 @@ jobs:
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
-            --command="SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'IX_research_claims_ResearchProjectId';" \
+            --command="SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'IX_research_claims_ResearchProjectId'" \
             --tuples-only \
-            --no-align | xargs)
+            --no-align | tr -d '[:space:]')
           test "$index" = 'IX_research_claims_ResearchProjectId' || {
             echo "Missing production index: IX_research_claims_ResearchProjectId"
             exit 1
