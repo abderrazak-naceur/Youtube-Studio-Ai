@@ -1,5 +1,6 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Check, ChevronRight, FileText, FolderOpen, LayoutDashboard, Loader2, Play, Settings, Sparkles, Upload, Video, X } from 'lucide-react';
+import { OpportunityPanel } from './OpportunityPanel';
 import './index.css';
 
 type Stage = 'Draft' | 'Researching' | 'Scripted' | 'Planned' | 'Producing' | 'Rendering' | 'Qa' | 'Completed' | 'Failed';
@@ -173,6 +174,8 @@ function App() {
               </button>)}
             </div>}
           </section>
+
+          <OpportunityPanel apiBase={API_BASE} workspaceId={workspaceId} />
 
           {project && <section className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6">
             <div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Production</p><h2 className="mt-1 text-xl font-semibold">{project.title || project.prompt}</h2></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-400">{project.status}</span></div>
