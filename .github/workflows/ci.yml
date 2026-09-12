@@ -49,8 +49,8 @@ jobs:
         with:
           name: backend-test-diagnostics
           path: |
-            '**/test-results.trx'
-            'backend-test.log'
+            **/test-results.trx
+            backend-test.log
           if-no-files-found: warn
 
   frontend:
