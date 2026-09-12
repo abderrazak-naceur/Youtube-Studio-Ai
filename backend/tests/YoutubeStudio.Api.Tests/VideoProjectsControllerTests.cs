@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,37 @@ namespace YoutubeStudio.Api.Tests;
 
 public sealed class VideoProjectsControllerTests
 {
+    [Fact]
+    public async Task List_returns_recent_projects_for_workspace()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        db.VideoProjects.AddRange(
+            new VideoProject { WorkspaceId = workspace.Id, Prompt = "Older", Status = VideoProjectStatus.Completed, UpdatedAtUtc = DateTime.UtcNow.AddMinutes(-5) },
+            new VideoProject { WorkspaceId = workspace.Id, Prompt = "Newest", Status = VideoProjectStatus.Researching, UpdatedAtUtc = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.List(workspace.Id, CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var projects = Assert.IsAssignableFrom<IReadOnlyList<VideoProjectListItemResponse>>(response.Value);
+        Assert.Equal(2, projects.Count);
+        Assert.Equal("Newest", projects[0].Prompt);
+    }
+
+    [Fact]
+    public async Task List_rejects_missing_workspace()
+    {
+        await using var db = CreateDb();
+        var controller = CreateController(db);
+
+        var result = await controller.List(Guid.NewGuid(), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
     [Fact]
     public async Task Create_rejects_missing_workspace()
     {
