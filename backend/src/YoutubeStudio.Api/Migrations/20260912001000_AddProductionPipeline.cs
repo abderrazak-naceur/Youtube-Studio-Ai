@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace YoutubeStudio.Api.Migrations;
 
+[Migration("20260912001000_AddProductionPipeline")]
 public partial class AddProductionPipeline : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
