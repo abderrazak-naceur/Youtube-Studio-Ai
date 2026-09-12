@@ -23,6 +23,8 @@ describe('ResearchEvidencePanel', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<ResearchEvidencePanel apiBase="" workspaceId="workspace-1" researchProjectId="project-1" sources={[source]} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1'));
+
     fireEvent.change(screen.getByLabelText('Evidence quote'), { target: { value: 'Exact quote' } });
     fireEvent.change(screen.getByLabelText('Evidence locator'), { target: { value: 'p. 10' } });
     fireEvent.click(screen.getByRole('button', { name: /Add evidence/i }));
@@ -30,6 +32,6 @@ describe('ResearchEvidencePanel', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/research-projects/project-1/sources/source-1/evidence', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ workspaceId: 'workspace-1', researchSourceId: 'source-1', quote: 'Exact quote', locator: 'p. 10', context: null, metadataJson: null })
-    })));
+    }));
   });
 });
