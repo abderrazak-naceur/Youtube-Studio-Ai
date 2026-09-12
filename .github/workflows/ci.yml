@@ -64,35 +64,67 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          migrations=$(dotnet ef migrations list --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --no-build)
-          grep -q '20260911120000_InitialMvp' <<<"$migrations"
-          grep -q '20260911143000_AddVideoProjects' <<<"$migrations"
-          grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
-          grep -q '20260912130000_AddResearchProjects' <<<"$migrations"
-          grep -q '20260912134000_AddResearchSources' <<<"$migrations"
-          grep -q '20260912145000_AddResearchEvidence' <<<"$migrations"
-          grep -q '20260912152000_AddResearchClaims' <<<"$migrations"
-          grep -q '20260912205000_AddResearchClaimProjectIndex' <<<"$migrations"
+          project=backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+          migrations=$(dotnet ef migrations list --project "$project" --no-build)
+          printf '%s\n' "$migrations"
 
-          PGPASSWORD=postgres psql \
+          expected_migrations=(
+            '20260911120000_InitialMvp'
+            '20260911143000_AddVideoProjects'
+            '20260912001000_AddProductionPipeline'
+            '20260912130000_AddResearchProjects'
+            '20260912134000_AddResearchSources'
+            '20260912145000_AddResearchEvidence'
+            '20260912152000_AddResearchClaims'
+            '20260912205000_AddResearchClaimProjectIndex'
+          )
+          for migration in "${expected_migrations[@]}"; do
+            grep -Fq "$migration" <<<"$migrations" || {
+              echo "Missing EF migration: $migration"
+              exit 1
+            }
+          done
+
+          schema=$(PGPASSWORD=postgres psql \
             --host=localhost \
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
-            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"'), to_regclass('"'"'public.research_projects'"'"'), to_regclass('"'"'public.research_sources'"'"'), to_regclass('"'"'public.research_evidence'"'"'), to_regclass('"'"'public.research_claims'"'"'), to_regclass('"'"'public.research_claim_evidence'"'"');' \
+            --command="SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('workspaces','video_projects','production_jobs','production_artifacts','research_projects','research_sources','research_evidence','research_claims','research_claim_evidence') ORDER BY table_name;" \
             --tuples-only \
-            --no-align | tee migration-schema.txt
+            --no-align)
+          printf 'Production tables:\n%s\n' "$schema"
 
-          grep -q 'workspaces|video_projects|production_jobs|production_artifacts|research_projects|research_sources|research_evidence|research_claims|research_claim_evidence' migration-schema.txt
+          expected_tables=(
+            workspaces
+            video_projects
+            production_jobs
+            production_artifacts
+            research_projects
+            research_sources
+            research_evidence
+            research_claims
+            research_claim_evidence
+          )
+          for table in "${expected_tables[@]}"; do
+            grep -Fxq "$table" <<<"$schema" || {
+              echo "Missing production table: $table"
+              exit 1
+            }
+          done
 
-          PGPASSWORD=postgres psql \
+          index=$(PGPASSWORD=postgres psql \
             --host=localhost \
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
             --command="SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'IX_research_claims_ResearchProjectId';" \
             --tuples-only \
-            --no-align | grep -qx 'IX_research_claims_ResearchProjectId'
+            --no-align | xargs)
+          test "$index" = 'IX_research_claims_ResearchProjectId' || {
+            echo "Missing production index: IX_research_claims_ResearchProjectId"
+            exit 1
+          }
       - name: Verify end-to-end video production loop
         shell: bash
         run: |
