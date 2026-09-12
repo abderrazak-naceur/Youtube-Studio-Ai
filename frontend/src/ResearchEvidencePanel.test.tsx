@@ -38,8 +38,8 @@ describe('ResearchEvidencePanel', () => {
       metadataJson: null
     });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/research-projects/project-1/sources/source-1/evidence',
-      { method: 'POST', body: expectedCreateBody }
+      '/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1',
+      { method: 'POST', body: expectedCreateBody, headers: { 'Content-Type': 'application/json' } }
     ));
   });
 });
