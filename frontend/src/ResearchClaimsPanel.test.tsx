@@ -15,8 +15,8 @@ describe('ResearchClaimsPanel', () => {
 
     expect(await screen.findByText('A supported fact')).toBeInTheDocument();
     expect(screen.getByText('Exact supporting quote')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1');
-    expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1');
+    await waitFor(() => expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1'));
+    await waitFor(() => expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1'));
   });
 
   it('creates a claim with selected evidence and default unverified status', async () => {
