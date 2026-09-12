@@ -11,7 +11,7 @@ public sealed class ResearchClaim : Entity
     public ICollection<ResearchClaimEvidence> EvidenceLinks { get; set; } = [];
 }
 
-public sealed class ResearchClaimEvidence : Entity
+public sealed class ResearchClaimEvidence
 {
     public Guid ResearchClaimId { get; set; }
     public Guid ResearchEvidenceId { get; set; }
