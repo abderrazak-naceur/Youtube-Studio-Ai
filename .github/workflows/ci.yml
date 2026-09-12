@@ -70,7 +70,6 @@ jobs:
           grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
           grep -q '20260912130000_AddResearchProjects' <<<"$migrations"
           grep -q '20260912134000_AddResearchSources' <<<"$migrations"
-          grep -q '20260912140000_AddResearchSources' <<<"$migrations"
           grep -q '20260912145000_AddResearchEvidence' <<<"$migrations"
           grep -q '20260912152000_AddResearchClaims' <<<"$migrations"
 
