@@ -10,6 +10,21 @@ namespace YoutubeStudio.Api.Controllers;
 [Route("api/v1/video-projects")]
 public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProductionJobService productionJobs) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<VideoProjectListItemResponse>>> List([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
+    {
+        if (!await db.Workspaces.AnyAsync(x => x.Id == workspaceId, cancellationToken)) return BadRequest("Workspace does not exist.");
+
+        var projects = await db.VideoProjects.AsNoTracking()
+            .Where(x => x.WorkspaceId == workspaceId)
+            .OrderByDescending(x => x.UpdatedAtUtc)
+            .Take(20)
+            .Select(x => new VideoProjectListItemResponse(x.Id, x.Prompt, x.Status.ToString(), x.Title, x.UpdatedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return Ok(projects);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<VideoProjectResponse>> Get(Guid id, CancellationToken cancellationToken)
     {
@@ -49,5 +64,6 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
+public sealed record VideoProjectListItemResponse(Guid Id, string Prompt, string Status, string? Title, DateTime UpdatedAtUtc);
 public sealed record VideoProjectResponse(Guid Id, Guid WorkspaceId, Guid? ChannelId, string Prompt, string Status, string? Title, string? Script, ProductionJobResponse? LatestJob);
 public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? LastCompletedStage, string? Error);
