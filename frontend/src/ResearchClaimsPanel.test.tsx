@@ -12,7 +12,7 @@ describe('ResearchClaimsPanel', () => {
     render(<ResearchClaimsPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" sources={[{ id: 'source-1', title: 'Official report' }]} />);
 
     expect(await screen.findByText('A supported fact')).toBeInTheDocument();
-    expect(screen.getByText('Exact supporting quote')).toBeInTheDocument();
+    expect(screen.getByText('Exact supporting quote', { selector: 'p' })).toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1'));
     await waitFor(() => expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1'));
   });
@@ -40,8 +40,8 @@ describe('ResearchClaimsPanel', () => {
       verificationStatus: 'unverified'
     });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      'http://api.test/api/v1/research-projects/project-1/claims',
-      { method: 'POST', body: expectedCreateBody }
+      'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1',
+      { method: 'POST', body: expectedCreateBody, headers: { 'Content-Type': 'application/json' } }
     ));
   });
 
@@ -60,7 +60,7 @@ describe('ResearchClaimsPanel', () => {
     const expectedVerificationBody = JSON.stringify({ workspaceId: 'workspace-1', verificationStatus: 'verified' });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       'http://api.test/api/v1/research-projects/project-1/claims/claim-1/verification',
-      { method: 'PUT', body: expectedVerificationBody }
+      { method: 'PUT', body: expectedVerificationBody, headers: { 'Content-Type': 'application/json' } }
     ));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
