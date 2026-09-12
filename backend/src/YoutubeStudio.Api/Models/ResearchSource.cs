@@ -8,4 +8,5 @@ public sealed class ResearchSource : Entity
     public string Title { get; set; } = string.Empty;
     public string MetadataJson { get; set; } = "{}";
     public ResearchProject ResearchProject { get; set; } = null!;
+    public ICollection<ResearchEvidence> Evidence { get; set; } = [];
 }
