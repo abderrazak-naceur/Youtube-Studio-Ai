@@ -24,11 +24,11 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b =>
         {
-            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("ExternalChannelId").HasColumnType("text"); b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)"); b.Property<string>("Platform").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_channels"); b.HasIndex("WorkspaceId", "Name").HasDatabaseName("ix_channels_workspace_id_name"); b.ToTable("channels");
+            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("ExternalChannelId").HasColumnType("text"); b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)"); b.Property<string>("Platform").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_channels"); b.HasIndex("WorkspaceId", "Name").HasDatabaseName("ix_channels_workspace_id_name"); b.ToTable("channels");
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b =>
         {
-            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<string>("AudienceProblem").HasColumnType("text"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<decimal>("OpportunityScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<decimal>("RevenueScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<string>("Rationale").HasColumnType("text"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.HasKey("Id").HasName("pk_opportunities"); b.HasIndex("WorkspaceId", "Status").HasDatabaseName("ix_opportunities_workspace_id_status"); b.ToTable("opportunities");
+            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<string>("AudienceProblem").HasColumnType("text"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<decimal>("OpportunityScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<decimal>("RevenueScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)"); b.Property<string>("Rationale").HasColumnType("text"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_opportunities"); b.HasIndex("WorkspaceId", "Status").HasDatabaseName("ix_opportunities_workspace_id_status"); b.ToTable("opportunities");
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b =>
         {
@@ -86,7 +86,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaimEvidence", b => { b.Navigation("ResearchClaim"); b.Navigation("ResearchEvidence"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b => { b.Navigation("Channel"); b.Navigation("Workspace"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionJob", b => b.Navigation("VideoProject"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b => b.Navigation("VideoProject"));
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b => b.Navigation("ProductionArtifact");
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b => { b.Navigation("Channels"); b.Navigation("Opportunities"); });
 #pragma warning restore 612, 618
     }
