@@ -10,7 +10,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsqlOptions => npgsqlOptions.SetPostgresVersion(17, 0)));
 
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
 builder.Services.AddHostedService<VideoProductionWorker>();
