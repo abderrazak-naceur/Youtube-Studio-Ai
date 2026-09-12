@@ -22,11 +22,18 @@ export function ResearchClaimsPanel({ apiBase, workspaceId, researchProjectId, s
     try {
       const claimsResponse = await fetch(`${apiBase}/api/v1/research-projects/${researchProjectId}/claims?workspaceId=${encodeURIComponent(workspaceId.trim())}`);
       if (!claimsResponse.ok) throw new Error(await claimsResponse.text());
-      setClaims(await claimsResponse.json());
+      const claimPayload = await claimsResponse.json();
+      setClaims((Array.isArray(claimPayload) ? claimPayload : []).map((claim: Partial<Claim>) => ({
+        ...claim,
+        evidenceIds: Array.isArray(claim.evidenceIds) ? claim.evidenceIds : []
+      })) as Claim[]);
       const allEvidence: Evidence[] = [];
       for (const source of sources) {
         const response = await fetch(`${apiBase}/api/v1/research-projects/${researchProjectId}/sources/${source.id}/evidence?workspaceId=${encodeURIComponent(workspaceId.trim())}`);
-        if (response.ok) allEvidence.push(...(await response.json()).map((item: Omit<Evidence, 'sourceId'>) => ({ ...item, sourceId: source.id })));
+        if (response.ok) {
+          const payload = await response.json();
+          if (Array.isArray(payload)) allEvidence.push(...payload.map((item: Omit<Evidence, 'sourceId'>) => ({ ...item, sourceId: source.id })));
+        }
       }
       setEvidence(allEvidence);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Unable to load claims.'); }
