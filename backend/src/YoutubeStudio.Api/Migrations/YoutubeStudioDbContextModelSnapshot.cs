@@ -101,7 +101,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("Type").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("VideoProjectId").HasColumnType("uuid");
-            b.HasKey("PK_production_artifacts", x => x.Id);
+            b.HasKey("Id").HasName("PK_production_artifacts");
             b.HasIndex("VideoProjectId", "Type").HasDatabaseName("IX_production_artifacts_VideoProjectId_Type");
             b.ToTable("production_artifacts");
         });
