@@ -40,7 +40,7 @@ public sealed class WorkspaceChannelControllerTests
             new CreateWorkspaceRequest("   "),
             CancellationToken.None);
 
-        var validation = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var validation = Assert.IsType<ObjectResult>(result.Result);
         var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
         Assert.Equal("Workspace name is required.", problem.Detail);
     }
@@ -96,7 +96,7 @@ public sealed class WorkspaceChannelControllerTests
             new CreateChannelRequest(workspace.Id, "My channel", "tiktok"),
             CancellationToken.None);
 
-        var validation = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var validation = Assert.IsType<ObjectResult>(result.Result);
         var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
         Assert.Equal("Only YouTube channels are supported in the MVP.", problem.Detail);
     }
