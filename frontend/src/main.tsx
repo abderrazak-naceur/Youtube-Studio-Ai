@@ -1,5 +1,4 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import { BarChart3, Check, ChevronRight, FileText, FolderOpen, LayoutDashboard, Loader2, Play, Settings, Sparkles, Upload, Video, X } from 'lucide-react';
 import './index.css';
 
@@ -32,7 +31,8 @@ type Artifact = {
   createdAtUtc: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
+const API_BASE = configuredApiBase ? configuredApiBase.replace(/\/$/, '') : '';
 const stages: Array<{ key: Stage; label: string; detail?: string }> = [
   { key: 'Researching', label: 'Research' },
   { key: 'Scripted', label: 'Script' },
