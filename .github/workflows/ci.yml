@@ -36,6 +36,25 @@ jobs:
         run: dotnet tool install --global dotnet-ef --version 10.0.0
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+      - name: Verify EF Core migrations and production schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          migrations=$(dotnet ef migrations list --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj)
+          grep -q '20260911120000_InitialMvp' <<<"$migrations"
+          grep -q '20260911143000_AddVideoProjects' <<<"$migrations"
+          grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
+
+          PGPASSWORD=postgres psql \
+            --host=localhost \
+            --port=5432 \
+            --username=postgres \
+            --dbname=youtube_studio_ai \
+            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"');' \
+            --tuples-only \
+            --no-align | tee migration-schema.txt
+
+          grep -q 'workspaces|video_projects|production_jobs|production_artifacts' migration-schema.txt
       - name: Verify end-to-end video production loop
         shell: bash
         run: |
@@ -119,6 +138,7 @@ jobs:
             **/test-results.trx
             backend-test.log
             api-e2e.log
+            migration-schema.txt
           if-no-files-found: warn
 
   frontend:
