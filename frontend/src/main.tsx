@@ -1,4 +1,5 @@
 import { StrictMode, useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { BarChart3, Check, ChevronRight, FileText, FolderOpen, LayoutDashboard, Loader2, Play, Settings, Sparkles, Upload, Video, X } from 'lucide-react';
 import { OpportunityPanel } from './OpportunityPanel';
 import './index.css';
