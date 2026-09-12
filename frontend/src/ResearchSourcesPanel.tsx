@@ -14,16 +14,17 @@ export function ResearchSourcesPanel({ apiBase, workspaceId, opportunityId }: Pr
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    if (!workspaceId.trim()) return;
+    const scopedWorkspaceId = workspaceId.trim();
+    if (!scopedWorkspaceId) return;
     setError('');
     try {
-      const response = await fetch(`${apiBase}/api/v1/research-projects?workspaceId=${encodeURIComponent(workspaceId.trim())}`);
+      const response = await fetch(`${apiBase}/api/v1/research-projects?workspaceId=${encodeURIComponent(scopedWorkspaceId)}`);
       if (!response.ok) throw new Error(await response.text());
       const projects: ResearchProject[] = await response.json();
       const selected = projects.find(item => !opportunityId || item.opportunityId === opportunityId) ?? projects[0] ?? null;
       setProject(selected);
       if (!selected) return setSources([]);
-      const sourceResponse = await fetch(`${apiBase}/api/v1/research-projects/${selected.id}/sources`);
+      const sourceResponse = await fetch(`${apiBase}/api/v1/research-projects/${selected.id}/sources?workspaceId=${encodeURIComponent(scopedWorkspaceId)}`);
       if (!sourceResponse.ok) throw new Error(await sourceResponse.text());
       setSources(await sourceResponse.json());
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load research sources.'); }
@@ -33,13 +34,15 @@ export function ResearchSourcesPanel({ apiBase, workspaceId, opportunityId }: Pr
 
   async function addSource(event: FormEvent) {
     event.preventDefault();
+    const scopedWorkspaceId = workspaceId.trim();
     if (!project) return setError('Create a research project before adding sources.');
+    if (!scopedWorkspaceId) return setError('Workspace ID is required.');
     if (!url.trim() || !title.trim()) return setError('URL and title are required.');
     setBusy(true); setError('');
     try {
       const response = await fetch(`${apiBase}/api/v1/research-projects/${project.id}/sources`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId: workspaceId.trim(), url: url.trim(), title: title.trim(), metadataJson: '{}' })
+        body: JSON.stringify({ workspaceId: scopedWorkspaceId, researchProjectId: project.id, url: url.trim(), title: title.trim(), metadataJson: '{}' })
       });
       if (!response.ok) throw new Error(await response.text());
       setUrl(''); setTitle(''); await load();
