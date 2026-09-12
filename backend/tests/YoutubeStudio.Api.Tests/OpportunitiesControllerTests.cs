@@ -70,6 +70,27 @@ public sealed class OpportunitiesControllerTests
     }
 
     [Fact]
+    public async Task GetAll_accepts_case_insensitive_sort_and_direction()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        db.Workspaces.Add(workspace);
+        db.Opportunities.AddRange(
+            new Opportunity { WorkspaceId = workspace.Id, Title = "Low revenue", Status = "new", OpportunityScore = 90, RevenueScore = 20 },
+            new Opportunity { WorkspaceId = workspace.Id, Title = "High revenue", Status = "new", OpportunityScore = 70, RevenueScore = 80 });
+        await db.SaveChangesAsync();
+
+        var controller = new OpportunitiesController(db);
+        var result = await controller.GetAll(workspace.Id, null, "REVENUESCORE", "ASC", CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var opportunities = Assert.IsAssignableFrom<IReadOnlyList<OpportunityResponse>>(response.Value);
+        Assert.Equal(2, opportunities.Count);
+        Assert.Equal("Low revenue", opportunities[0].Title);
+        Assert.Equal("High revenue", opportunities[1].Title);
+    }
+
+    [Fact]
     public async Task GetAll_rejects_missing_workspace()
     {
         await using var db = CreateDb();
