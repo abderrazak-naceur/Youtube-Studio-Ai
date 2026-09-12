@@ -2,13 +2,13 @@
 
 > **AI Media Company OS** — from an idea to a professional video, then from performance data to the next better idea.
 
+![YouTube Studio AI MVP production pipeline](docs/assets/youtube-studio-ai-pipeline.svg)
+
 YouTube Studio AI is being built as an AI-native operating system for creating, producing, publishing and improving original YouTube content at scale.
 
 The core experience is deliberately simple:
 
 **Idea / Prompt → Research → Script → Scene Plan → Visuals → Voice → Music/SFX → Captions → Edit/Render → QA → Professional MP4**
-
-The long-term product goes beyond video generation. It connects content creation with opportunity discovery, channel intelligence, analytics and monetization so every published video can improve the next decision.
 
 ---
 
@@ -46,7 +46,55 @@ The repository is currently in the **v0.1 MVP foundation / vertical-slice phase*
 
 The first objective is to prove a reliable production loop before adding large-scale automation or monetization features.
 
-### Implemented foundation
+### v0.1 implementation checklist
+
+Legend: **[x] completed and verified**, **[~] implemented but verification/DoD still pending**, **[ ] not yet completed**.
+
+#### Foundation — Workspace & Channel
+
+- [x] ASP.NET Core / .NET 10 backend
+- [x] C# domain model
+- [x] PostgreSQL + Entity Framework Core
+- [x] Workspace creation and persistence
+- [x] Channel creation and persistence
+- [x] Workspace/channel isolation and validation tests
+- [x] Versioned REST API under `/api/v1`
+- [x] Health check endpoint
+- [x] Swagger in development
+- [x] PostgreSQL migration verification in CI
+- [x] Backend build in GitHub Actions
+- [x] Frontend build in GitHub Actions
+- [x] Backend test diagnostics in CI
+
+#### Video creation vertical slice
+
+- [x] VideoProject model and API
+- [x] Prompt validation
+- [x] Workspace validation
+- [x] Channel-to-workspace validation
+- [x] `Draft → Researching → Scripted → Planned → Producing → Rendering → QA → Completed` pipeline states
+- [x] Persistent production jobs
+- [x] Production job enqueue service
+- [x] Provider abstraction boundaries
+- [x] Research provider boundary
+- [x] Script provider boundary
+- [x] Scene-plan provider boundary
+- [x] Voice provider boundary
+- [x] Visual provider boundary
+- [x] Music/SFX provider boundary
+- [x] Caption provider boundary
+- [x] Render provider boundary
+- [x] QA provider boundary
+- [x] Production artifacts persistence
+- [x] Pipeline artifact API
+- [x] Create Video frontend flow
+- [x] Pipeline progress polling in frontend
+- [x] Generated artifacts shown in frontend
+- [x] User-facing pipeline labels
+- [~] End-to-end Create → Start → Worker → Artifacts verification
+- [~] Final v0.1 Definition of Done
+
+### What is implemented
 
 - ASP.NET Core / .NET 10 backend
 - C# domain model
@@ -84,6 +132,77 @@ Completed
 ```
 
 The current implementation uses placeholders and provider interfaces where real AI credentials are not yet required. This keeps the architecture replaceable and testable while the core workflow is built. Music/SFX is represented as its own provider boundary and persisted production artifact before rendering.
+
+---
+
+## Agile implementation plan
+
+The project is executed **incrementally and in dependency order**. A release is not considered complete until its acceptance criteria, tests, CI and Definition of Done are verified.
+
+### Release roadmap
+
+| Status | Release | Scope |
+|---|---|---|
+| [~] | **v0.1** | Foundation + video creation vertical slice |
+| [ ] | **v0.2** | Opportunity Engine |
+| [ ] | **v0.3** | Research Engine |
+| [ ] | **v0.4** | Fact Check |
+| [ ] | **v0.5** | Content Engine |
+| [ ] | **v0.6** | AI Provider Layer |
+| [ ] | **v0.7** | Production Engine hardening |
+| [ ] | **v0.8** | Complete video pipeline |
+| [ ] | **v1.0** | MVP production loop |
+| [ ] | **v1.x** | YouTube publishing, analytics and learning loop |
+| [ ] | **v2.0** | YouTube OS |
+| [ ] | **v3.0** | Autonomous Creator / Creator Business OS |
+
+### v0.1 — Definition of Done checklist
+
+- [x] Backend starts and compiles on .NET 10
+- [x] Frontend starts and compiles with Vite/React/TypeScript
+- [x] PostgreSQL connectivity configured through application configuration
+- [x] EF Core migrations exist and are exercised against PostgreSQL in CI
+- [x] Workspace and channel persistence implemented
+- [x] VideoProject persistence implemented
+- [x] ProductionJob persistence implemented
+- [x] ProductionArtifact persistence implemented
+- [x] REST API versioned under `/api/v1`
+- [x] Prompt/input validation implemented
+- [x] Workspace/channel reference validation implemented
+- [x] Provider interfaces keep vendors replaceable
+- [x] No provider secrets exposed in browser code
+- [x] Create Video flow implemented
+- [x] Pipeline status exposed by API
+- [x] Pipeline artifacts exposed by API
+- [x] Pipeline artifacts surfaced by frontend
+- [x] Unit tests cover the foundation and video-project slice
+- [~] Full end-to-end Create Video acceptance test in CI
+- [~] Final CI run green after the latest vertical-slice changes
+- [~] v0.1 release/Issue Definition of Done formally closed
+
+### Completed implementation history
+
+- [x] Workspace/channel foundation and validation tests
+- [x] VideoProject creation and validation
+- [x] Production job persistence and enqueue flow
+- [x] Provider adapter boundaries for the full production journey
+- [x] Music/SFX stage added to the production worker
+- [x] Pipeline artifact retrieval API
+- [x] Frontend artifact display and pipeline labels
+- [x] CI PostgreSQL migration gate
+- [x] CI backend test diagnostics and reports
+- [x] CI/test-project compatibility fixes
+- [x] Validation-test corrections aligned with ASP.NET Core controller behavior
+- [x] README pipeline image and implementation checklist
+
+### Next work, in strict order
+
+1. **[~] v0.1 — close remaining end-to-end/DoD verification.**
+2. **[ ] v0.2 — Opportunity Engine**, only after v0.1 is closed.
+3. **[ ] v0.3 — Research Engine**, after the opportunity foundation.
+4. **[ ] v0.4+ — continue through the dependency chain toward v1.0.**
+
+> **Rule:** do not start unrelated 2027–2030 work while the MVP production loop is incomplete.
 
 ---
 
@@ -181,6 +300,7 @@ The goal is not mass-producing low-value videos. The system should help create o
 │       └── YoutubeStudio.Api.Tests/
 ├── frontend/
 ├── docs/
+│   ├── assets/
 │   ├── architecture/
 │   ├── agents/
 │   ├── ai/
@@ -232,25 +352,6 @@ Next increment
 ```
 
 The current priority is to complete the MVP production vertical slice before moving into the broader YouTube OS and revenue features.
-
-### Planned evolution
-
-| Release | Focus |
-|---|---|
-| v0.1 | Foundation + video creation vertical slice |
-| v0.2 | Opportunity Engine |
-| v0.3 | Research Engine |
-| v0.4 | Fact Check |
-| v0.5 | Content Engine |
-| v0.6 | AI Provider Layer |
-| v0.7 | Production Engine |
-| v0.8 | Complete video pipeline |
-| v1.0 | MVP production loop |
-| v1.x | YouTube publishing, analytics and learning loop |
-| v2.0 | YouTube OS |
-| v3.0 | Autonomous Creator / Creator Business OS |
-
-The exact release boundaries may evolve as implementation evidence is collected, but dependencies and the production-first strategy remain the priority.
 
 ---
 
