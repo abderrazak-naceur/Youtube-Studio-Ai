@@ -44,7 +44,8 @@ describe('ResearchClaimsPanel', () => {
   it('updates claim verification with workspace scope and refreshes the claim state', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'claim-1', text: 'Claim', verificationStatus: 'unverified', evidenceIds: [] }] })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'claim-1', text: 'Claim', verificationStatus: 'verified', evidenceIds: [] }) });
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'claim-1', text: 'Claim', verificationStatus: 'verified', evidenceIds: [] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'claim-1', text: 'Claim', verificationStatus: 'verified', evidenceIds: [] }] });
     vi.stubGlobal('fetch', fetchMock);
 
     render(<ResearchClaimsPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" sources={[]} />);
@@ -57,6 +58,6 @@ describe('ResearchClaimsPanel', () => {
       body: JSON.stringify({ workspaceId: 'workspace-1', verificationStatus: 'verified' })
     }));
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   });
 });
