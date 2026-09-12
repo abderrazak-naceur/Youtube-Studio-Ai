@@ -72,6 +72,7 @@ jobs:
           grep -q '20260912134000_AddResearchSources' <<<"$migrations"
           grep -q '20260912145000_AddResearchEvidence' <<<"$migrations"
           grep -q '20260912152000_AddResearchClaims' <<<"$migrations"
+          grep -q '20260912205000_AddResearchClaimProjectIndex' <<<"$migrations"
 
           PGPASSWORD=postgres psql \
             --host=localhost \
@@ -83,6 +84,15 @@ jobs:
             --no-align | tee migration-schema.txt
 
           grep -q 'workspaces|video_projects|production_jobs|production_artifacts|research_projects|research_sources|research_evidence|research_claims|research_claim_evidence' migration-schema.txt
+
+          PGPASSWORD=postgres psql \
+            --host=localhost \
+            --port=5432 \
+            --username=postgres \
+            --dbname=youtube_studio_ai \
+            --command="SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'IX_research_claims_ResearchProjectId';" \
+            --tuples-only \
+            --no-align | grep -qx 'IX_research_claims_ResearchProjectId'
       - name: Verify end-to-end video production loop
         shell: bash
         run: |
