@@ -38,23 +38,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if dotnet ef migrations has-pending-model-changes \
-            --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj; then
+          project=backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+          if dotnet ef migrations has-pending-model-changes --project "$project" --no-build; then
             echo 'EF Core model snapshot is current.'
           else
-            status=$?
-            echo 'EF Core reports pending model changes; migration snapshot must be synchronized.'
-            dotnet ef migrations has-pending-model-changes \
-              --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj || true
-            exit "$status"
+            echo 'EF Core reports pending model changes. Generating a CI-only migration diff.'
+            rm -rf /tmp/ef-model-diff
+            mkdir -p /tmp/ef-model-diff
+            if dotnet ef migrations add CiModelDiff \
+              --project "$project" \
+              --no-build \
+              --output-dir /tmp/ef-model-diff; then
+              echo 'Generated EF model diff:'
+              cat /tmp/ef-model-diff/*_CiModelDiff.cs
+              echo 'EF model drift must be resolved in the committed migration snapshot.'
+            else
+              echo 'EF could not generate the diagnostic migration; printing the original pending-model check again.'
+              dotnet ef migrations has-pending-model-changes --project "$project" --no-build || true
+            fi
+            exit 1
           fi
       - name: Apply EF Core migrations
-        run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+        run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --no-build
       - name: Verify EF Core migrations and production schema
         shell: bash
         run: |
           set -euo pipefail
-          migrations=$(dotnet ef migrations list --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj)
+          migrations=$(dotnet ef migrations list --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --no-build)
           grep -q '20260911120000_InitialMvp' <<<"$migrations"
           grep -q '20260911143000_AddVideoProjects' <<<"$migrations"
           grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
