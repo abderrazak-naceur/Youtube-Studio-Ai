@@ -27,6 +27,24 @@ public sealed class VideoProjectsControllerTests
     }
 
     [Fact]
+    public async Task Create_rejects_blank_prompt()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        var result = await controller.Create(
+            new CreateVideoProjectRequest(workspace.Id, null, "   "),
+            CancellationToken.None);
+
+        var validation = Assert.IsType<ObjectResult>(result.Result);
+        var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
+        Assert.Equal("Video prompt is required.", problem.Detail);
+    }
+
+    [Fact]
     public async Task Create_rejects_channel_from_another_workspace()
     {
         await using var db = CreateDb();
