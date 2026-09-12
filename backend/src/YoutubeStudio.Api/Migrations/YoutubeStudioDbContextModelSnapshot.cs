@@ -82,11 +82,18 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("ResearchProjectId").HasColumnType("uuid");
             b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+<<<<<<< HEAD
             b.Property<string>("Url").IsRequired().HasMaxLength(2048).HasColumnType("character varying(2048)");
             b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
             b.HasKey("Id").HasName("pk_research_sources");
             b.HasIndex("ResearchProjectId", "CreatedAtUtc").HasDatabaseName("ix_research_sources_project_id_created_at");
             b.HasIndex("WorkspaceId", "ResearchProjectId").HasDatabaseName("ix_research_sources_workspace_id_project_id");
+=======
+            b.Property<string>("Url").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+            b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
+            b.HasKey("Id").HasName("pk_research_sources");
+            b.HasIndex("WorkspaceId", "ResearchProjectId").HasDatabaseName("ix_research_sources_workspace_id_research_project_id");
+>>>>>>> 4d0ef9be56dad7b068e78e0a3779a157e56d7040
             b.ToTable("research_sources");
         });
 
@@ -160,7 +167,11 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b =>
             b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject")
+<<<<<<< HEAD
                 .WithMany("Sources")
+=======
+                .WithMany()
+>>>>>>> 4d0ef9be56dad7b068e78e0a3779a157e56d7040
                 .HasForeignKey("ResearchProjectId")
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired());
@@ -195,7 +206,10 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b => b.Navigation("Workspace"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b => b.Navigation("Workspace"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Opportunity"));
+<<<<<<< HEAD
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Sources"));
+=======
+>>>>>>> 4d0ef9be56dad7b068e78e0a3779a157e56d7040
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b =>
         {

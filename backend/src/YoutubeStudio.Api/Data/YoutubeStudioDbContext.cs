@@ -62,12 +62,20 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
         {
             entity.ToTable("research_sources");
             entity.HasKey(x => x.Id).HasName("pk_research_sources");
+<<<<<<< HEAD
             entity.Property(x => x.Url).HasMaxLength(2048).IsRequired();
             entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
             entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired();
             entity.HasOne(x => x.ResearchProject).WithMany(x => x.Sources).HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.ResearchProjectId, x.CreatedAtUtc }).HasDatabaseName("ix_research_sources_project_id_created_at");
             entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_project_id");
+=======
+            entity.Property(x => x.Url).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired();
+            entity.HasOne(x => x.ResearchProject).WithMany().HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_research_project_id");
+>>>>>>> 4d0ef9be56dad7b068e78e0a3779a157e56d7040
         });
 
         modelBuilder.Entity<VideoProject>(entity =>
