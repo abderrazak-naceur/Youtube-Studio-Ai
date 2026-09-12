@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ResearchEvidencePanel } from './ResearchEvidencePanel';
 
 const source = { id: 'source-1', title: 'Primary source' };
 
 describe('ResearchEvidencePanel', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('loads evidence scoped to the selected workspace and source', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => [] });
