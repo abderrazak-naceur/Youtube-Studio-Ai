@@ -98,6 +98,106 @@ public sealed class ResearchProjectsControllerTests
         Assert.Equal(firstOpportunity.Id, projects[0].OpportunityId);
     }
 
+    [Fact]
+    public async Task AddSource_persists_source_for_project()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        var opportunity = new Opportunity { WorkspaceId = workspace.Id, Title = "AI trends", OpportunityScore = 80, RevenueScore = 70 };
+        var project = new ResearchProject { WorkspaceId = workspace.Id, OpportunityId = opportunity.Id };
+        db.Workspaces.Add(workspace);
+        db.Opportunities.Add(opportunity);
+        db.ResearchProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = new ResearchProjectsController(db);
+        var result = await controller.AddSource(
+            project.Id,
+            new CreateResearchSourceRequest(workspace.Id, project.Id, "https://example.com/article", "Example article", "{\"author\":\"Test\"}"),
+            CancellationToken.None);
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        var response = Assert.IsType<ResearchSourceResponse>(created.Value);
+        Assert.Equal(project.Id, response.ResearchProjectId);
+        Assert.Equal(workspace.Id, response.WorkspaceId);
+        Assert.Equal("https://example.com/article", response.Url);
+        Assert.Equal("Example article", response.Title);
+        Assert.Equal("{\"author\":\"Test\"}", response.MetadataJson);
+        Assert.Single(db.ResearchSources);
+    }
+
+    [Fact]
+    public async Task AddSource_rejects_project_from_another_workspace()
+    {
+        await using var db = CreateDb();
+        var owner = new Workspace { Name = "Owner" };
+        var other = new Workspace { Name = "Other" };
+        var opportunity = new Opportunity { WorkspaceId = owner.Id, Title = "Private", OpportunityScore = 50, RevenueScore = 50 };
+        var project = new ResearchProject { WorkspaceId = owner.Id, OpportunityId = opportunity.Id };
+        db.Workspaces.AddRange(owner, other);
+        db.Opportunities.Add(opportunity);
+        db.ResearchProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = new ResearchProjectsController(db);
+        var result = await controller.AddSource(
+            project.Id,
+            new CreateResearchSourceRequest(other.Id, project.Id, "https://example.com/private", "Private", null),
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.Empty(db.ResearchSources);
+    }
+
+    [Fact]
+    public async Task AddSource_rejects_non_http_url()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        var opportunity = new Opportunity { WorkspaceId = workspace.Id, Title = "AI trends", OpportunityScore = 80, RevenueScore = 70 };
+        var project = new ResearchProject { WorkspaceId = workspace.Id, OpportunityId = opportunity.Id };
+        db.Workspaces.Add(workspace);
+        db.Opportunities.Add(opportunity);
+        db.ResearchProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = new ResearchProjectsController(db);
+        var result = await controller.AddSource(
+            project.Id,
+            new CreateResearchSourceRequest(workspace.Id, project.Id, "ftp://example.com/article", "Example", null),
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Empty(db.ResearchSources);
+    }
+
+    [Fact]
+    public async Task GetSources_returns_only_sources_for_project_and_workspace()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        var other = new Workspace { Name = "Other" };
+        var opportunity = new Opportunity { WorkspaceId = workspace.Id, Title = "First", OpportunityScore = 70, RevenueScore = 70 };
+        var otherOpportunity = new Opportunity { WorkspaceId = other.Id, Title = "Second", OpportunityScore = 60, RevenueScore = 60 };
+        var project = new ResearchProject { WorkspaceId = workspace.Id, OpportunityId = opportunity.Id };
+        var otherProject = new ResearchProject { WorkspaceId = other.Id, OpportunityId = otherOpportunity.Id };
+        db.Workspaces.AddRange(workspace, other);
+        db.Opportunities.AddRange(opportunity, otherOpportunity);
+        db.ResearchProjects.AddRange(project, otherProject);
+        db.ResearchSources.AddRange(
+            new ResearchSource { WorkspaceId = workspace.Id, ResearchProjectId = project.Id, Url = "https://example.com/one", Title = "One" },
+            new ResearchSource { WorkspaceId = other.Id, ResearchProjectId = otherProject.Id, Url = "https://example.com/two", Title = "Two" });
+        await db.SaveChangesAsync();
+
+        var controller = new ResearchProjectsController(db);
+        var result = await controller.GetSources(project.Id, workspace.Id, CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var sources = Assert.IsAssignableFrom<IReadOnlyList<ResearchSourceResponse>>(response.Value);
+        Assert.Single(sources);
+        Assert.Equal("https://example.com/one", sources[0].Url);
+    }
+
     private static YoutubeStudioDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<YoutubeStudioDbContext>()
