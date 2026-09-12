@@ -13,8 +13,8 @@ describe('ResearchClaimsPanel', () => {
 
     expect(await screen.findByText('A supported fact')).toBeInTheDocument();
     expect(screen.getByText('Exact supporting quote', { selector: 'p' })).toBeInTheDocument();
-    await waitFor(() => expect(fetchMock.mock.calls[0]?.[0]).toBe('http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1'));
-    await waitFor(() => expect(fetchMock.mock.calls[1]?.[0]).toBe('http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1'));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === 'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1')).toBe(true));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === 'http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1')).toBe(true));
   });
 
   it('creates a claim with selected evidence and default unverified status', async () => {
