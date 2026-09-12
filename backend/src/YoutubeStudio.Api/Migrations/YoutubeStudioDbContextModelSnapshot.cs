@@ -74,6 +74,22 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.ToTable("research_projects");
         });
 
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b =>
+        {
+            b.Property<Guid>("Id").HasColumnType("uuid");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("MetadataJson").IsRequired().HasMaxLength(200000).HasColumnType("character varying(200000)");
+            b.Property<Guid>("ResearchProjectId").HasColumnType("uuid");
+            b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+            b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("Url").IsRequired().HasMaxLength(2048).HasColumnType("character varying(2048)");
+            b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
+            b.HasKey("Id").HasName("pk_research_sources");
+            b.HasIndex("ResearchProjectId", "CreatedAtUtc").HasDatabaseName("ix_research_sources_project_id_created_at");
+            b.HasIndex("WorkspaceId", "ResearchProjectId").HasDatabaseName("ix_research_sources_workspace_id_project_id");
+            b.ToTable("research_sources");
+        });
+
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b =>
         {
             b.Property<Guid>("Id").HasColumnType("uuid");
@@ -142,6 +158,13 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired());
 
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b =>
+            b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject")
+                .WithMany("Sources")
+                .HasForeignKey("ResearchProjectId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired());
+
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b =>
         {
             b.HasOne("YoutubeStudio.Api.Models.Channel", "Channel")
@@ -172,6 +195,8 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b => b.Navigation("Workspace"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b => b.Navigation("Workspace"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Opportunity"));
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Sources"));
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b =>
         {
             b.Navigation("Channel");

@@ -144,8 +144,8 @@ The project is executed **incrementally and in dependency order**. A release is 
 | Status | Release | Scope |
 |---|---|---|
 | [x] | **v0.1** | Foundation + video creation vertical slice |
-| [ ] | **v0.2** | Opportunity Engine |
-| [ ] | **v0.3** | Research Engine |
+| [x] | **v0.2** | Opportunity Engine |
+| [~] | **v0.3** | Research Engine — project and source workspace in progress |
 | [ ] | **v0.4** | Fact Check |
 | [ ] | **v0.5** | Content Engine |
 | [ ] | **v0.6** | AI Provider Layer |
@@ -200,8 +200,8 @@ The project is executed **incrementally and in dependency order**. A release is 
 ### Next work, in strict order
 
 1. **[x] v0.1 — close end-to-end/DoD verification.**
-2. **[ ] v0.2 — Opportunity Engine**, only after v0.1 is closed.
-3. **[ ] v0.3 — Research Engine**, after the opportunity foundation.
+2. **[x] v0.2 — Opportunity Engine**: workspace-scoped opportunity CRUD, sorting, validation and dashboard integration are complete.
+3. **[~] v0.3 — Research Engine**: research projects and source storage are implemented; claims, verification and evidence-backed briefs remain.
 4. **[ ] v0.4+ — continue through the dependency chain toward v1.0.**
 
 > **Rule:** do not start unrelated 2027–2030 work while the MVP production loop is incomplete.

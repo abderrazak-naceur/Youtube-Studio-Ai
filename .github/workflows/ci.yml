@@ -68,17 +68,19 @@ jobs:
           grep -q '20260911120000_InitialMvp' <<<"$migrations"
           grep -q '20260911143000_AddVideoProjects' <<<"$migrations"
           grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
+          grep -q '20260912130000_AddResearchProjects' <<<"$migrations"
+          grep -q '20260912140000_AddResearchSources' <<<"$migrations"
 
           PGPASSWORD=postgres psql \
             --host=localhost \
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
-            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"');' \
+            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"'), to_regclass('"'"'public.research_projects'"'"'), to_regclass('"'"'public.research_sources'"'"');' \
             --tuples-only \
             --no-align | tee migration-schema.txt
 
-          grep -q 'workspaces|video_projects|production_jobs|production_artifacts' migration-schema.txt
+          grep -q 'workspaces|video_projects|production_jobs|production_artifacts|research_projects|research_sources' migration-schema.txt
       - name: Verify end-to-end video production loop
         shell: bash
         run: |
