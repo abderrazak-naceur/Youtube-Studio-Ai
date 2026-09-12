@@ -36,10 +36,13 @@ jobs:
         run: dotnet tool install --global dotnet-ef --version 10.0.0
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+      - name: Restore backend tests
+        run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests
         run: |
           set -o pipefail
           dotnet test backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj \
+            --no-restore \
             --logger "trx;LogFileName=test-results.trx" \
             --logger "console;verbosity=detailed" \
             2>&1 | tee backend-test.log
