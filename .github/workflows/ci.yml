@@ -37,13 +37,20 @@ jobs:
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
       - name: Run backend tests
-        run: dotnet test backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=detailed"
-      - name: Upload backend test results
+        run: |
+          set -o pipefail
+          dotnet test backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj \
+            --logger "trx;LogFileName=test-results.trx" \
+            --logger "console;verbosity=detailed" \
+            2>&1 | tee backend-test.log
+      - name: Upload backend test diagnostics
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: backend-test-results
-          path: '**/test-results.trx'
+          name: backend-test-diagnostics
+          path: |
+            '**/test-results.trx'
+            'backend-test.log'
           if-no-files-found: warn
 
   frontend:
