@@ -88,15 +88,67 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         await db.SaveChangesAsync(cancellationToken);
 
         return CreatedAtAction(nameof(GetAll), new { workspaceId = opportunity.WorkspaceId },
-            new OpportunityResponse(
-                opportunity.Id,
-                opportunity.Title,
-                opportunity.Status,
-                opportunity.OpportunityScore,
-                opportunity.RevenueScore,
-                opportunity.AudienceProblem,
-                opportunity.Rationale));
+            ToResponse(opportunity));
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<OpportunityResponse>> Update(
+        Guid id,
+        UpdateOpportunityRequest request,
+        CancellationToken cancellationToken)
+    {
+        var opportunity = await db.Opportunities
+            .SingleOrDefaultAsync(x => x.Id == id && x.WorkspaceId == request.WorkspaceId, cancellationToken);
+
+        if (opportunity is null)
+            return NotFound("Opportunity does not exist in the specified workspace.");
+
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest("Opportunity title is required.");
+
+        if (!IsValidScore(request.OpportunityScore) || !IsValidScore(request.RevenueScore))
+            return BadRequest("Opportunity and revenue scores must be between 0 and 100.");
+
+        if (string.IsNullOrWhiteSpace(request.Status))
+            return BadRequest("Opportunity status is required.");
+
+        opportunity.Title = request.Title.Trim();
+        opportunity.Status = request.Status.Trim();
+        opportunity.AudienceProblem = request.AudienceProblem?.Trim();
+        opportunity.Rationale = request.Rationale?.Trim();
+        opportunity.OpportunityScore = request.OpportunityScore;
+        opportunity.RevenueScore = request.RevenueScore;
+        opportunity.UpdatedAtUtc = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(ToResponse(opportunity));
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(
+        Guid id,
+        [FromQuery] Guid workspaceId,
+        CancellationToken cancellationToken)
+    {
+        var opportunity = await db.Opportunities
+            .SingleOrDefaultAsync(x => x.Id == id && x.WorkspaceId == workspaceId, cancellationToken);
+
+        if (opportunity is null)
+            return NotFound("Opportunity does not exist in the specified workspace.");
+
+        db.Opportunities.Remove(opportunity);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    private static OpportunityResponse ToResponse(Opportunity opportunity) => new(
+        opportunity.Id,
+        opportunity.Title,
+        opportunity.Status,
+        opportunity.OpportunityScore,
+        opportunity.RevenueScore,
+        opportunity.AudienceProblem,
+        opportunity.Rationale);
 
     private static bool IsValidScore(decimal score) => score is >= 0 and <= 100;
 
@@ -112,6 +164,15 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
 public sealed record CreateOpportunityRequest(
     Guid WorkspaceId,
     string Title,
+    decimal OpportunityScore,
+    decimal RevenueScore,
+    string? AudienceProblem,
+    string? Rationale);
+
+public sealed record UpdateOpportunityRequest(
+    Guid WorkspaceId,
+    string Title,
+    string Status,
     decimal OpportunityScore,
     decimal RevenueScore,
     string? AudienceProblem,
