@@ -36,6 +36,70 @@ jobs:
         run: dotnet tool install --global dotnet-ef --version 10.0.0
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
+      - name: Verify end-to-end video production loop
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run --no-build --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --urls http://127.0.0.1:5000 > api-e2e.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:5000/health >/dev/null; then
+              break
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              cat api-e2e.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          curl --silent --fail http://127.0.0.1:5000/health >/dev/null
+
+          workspace_response=$(curl --silent --fail \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"CI E2E Workspace"}' \
+            http://127.0.0.1:5000/api/v1/workspaces)
+          workspace_id=$(jq -r '.id' <<<"$workspace_response")
+          test -n "$workspace_id" && test "$workspace_id" != "null"
+
+          project_response=$(curl --silent --fail \
+            -H 'Content-Type: application/json' \
+            -d "{\"workspaceId\":\"$workspace_id\",\"channelId\":null,\"prompt\":\"Create a short explainer about how AI helps creators plan better videos.\"}" \
+            http://127.0.0.1:5000/api/v1/video-projects)
+          project_id=$(jq -r '.id' <<<"$project_response")
+          test -n "$project_id" && test "$project_id" != "null"
+
+          curl --silent --fail \
+            -X POST \
+            http://127.0.0.1:5000/api/v1/video-projects/$project_id/start >/dev/null
+
+          completed=false
+          for attempt in {1..60}; do
+            status_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id)
+            status=$(jq -r '.status' <<<"$status_response")
+            if [ "$status" = "Completed" ]; then
+              completed=true
+              break
+            fi
+            if [ "$status" = "Failed" ]; then
+              echo "$status_response"
+              cat api-e2e.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          test "$completed" = true
+
+          artifacts_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
+          artifact_count=$(jq 'length' <<<"$artifacts_response")
+          test "$artifact_count" -ge 9
+
+          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Render Qa; do
+            jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
+          done
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests
@@ -54,6 +118,7 @@ jobs:
           path: |
             **/test-results.trx
             backend-test.log
+            api-e2e.log
           if-no-files-found: warn
 
   frontend:
