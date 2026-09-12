@@ -16,6 +16,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
         modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 63);
         modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
+        modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b =>
@@ -66,7 +67,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b => b.HasOne("YoutubeStudio.Api.Models.Workspace", "Workspace").WithMany("Opportunities").HasForeignKey("WorkspaceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.HasOne("YoutubeStudio.Api.Models.Opportunity", "Opportunity").WithMany().HasForeignKey("OpportunityId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject").WithMany("Sources").HasForeignKey("ResearchProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.HasOne("YoutubeStudio.Api.Models.ResearchSource", "ResearchSource").WithMany(x => x.Evidence).HasForeignKey("ResearchSourceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.HasOne("YoutubeStudio.Api.Models.ResearchSource", "ResearchSource").WithMany("Evidence").HasForeignKey("ResearchSourceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject").WithMany().HasForeignKey("ResearchProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaimEvidence", b => b.HasOne("YoutubeStudio.Api.Models.ResearchClaim", "ResearchClaim").WithMany("EvidenceLinks").HasForeignKey("ResearchClaimId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaimEvidence", b => b.HasOne("YoutubeStudio.Api.Models.ResearchEvidence", "ResearchEvidence").WithMany("ClaimLinks").HasForeignKey("ResearchEvidenceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
