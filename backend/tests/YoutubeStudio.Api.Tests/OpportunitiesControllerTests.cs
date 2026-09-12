@@ -80,6 +80,94 @@ public sealed class OpportunitiesControllerTests
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
+    [Fact]
+    public async Task Update_changes_fields_and_trims_values()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        var opportunity = new Opportunity
+        {
+            WorkspaceId = workspace.Id,
+            Title = "Original",
+            Status = "new",
+            OpportunityScore = 40,
+            RevenueScore = 30
+        };
+        db.Workspaces.Add(workspace);
+        db.Opportunities.Add(opportunity);
+        await db.SaveChangesAsync();
+
+        var controller = new OpportunitiesController(db);
+        var result = await controller.Update(
+            opportunity.Id,
+            new UpdateOpportunityRequest(workspace.Id, "  Updated  ", " qualified ", 88, 76, "  audience  ", "  rationale  "),
+            CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var updated = Assert.IsType<OpportunityResponse>(response.Value);
+        Assert.Equal("Updated", updated.Title);
+        Assert.Equal("qualified", updated.Status);
+        Assert.Equal(88, updated.OpportunityScore);
+        Assert.Equal(76, updated.RevenueScore);
+        Assert.Equal("audience", updated.AudienceProblem);
+        Assert.Equal("rationale", updated.Rationale);
+    }
+
+    [Fact]
+    public async Task Update_rejects_opportunity_from_another_workspace()
+    {
+        await using var db = CreateDb();
+        var owner = new Workspace { Name = "Owner" };
+        var other = new Workspace { Name = "Other" };
+        var opportunity = new Opportunity { WorkspaceId = owner.Id, Title = "Private", OpportunityScore = 50, RevenueScore = 50 };
+        db.Workspaces.AddRange(owner, other);
+        db.Opportunities.Add(opportunity);
+        await db.SaveChangesAsync();
+
+        var controller = new OpportunitiesController(db);
+        var result = await controller.Update(
+            opportunity.Id,
+            new UpdateOpportunityRequest(other.Id, "Changed", "new", 50, 50, null, null),
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Delete_removes_opportunity_from_workspace()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Creator workspace" };
+        var opportunity = new Opportunity { WorkspaceId = workspace.Id, Title = "Delete me", OpportunityScore = 50, RevenueScore = 50 };
+        db.Workspaces.Add(workspace);
+        db.Opportunities.Add(opportunity);
+        await db.SaveChangesAsync();
+
+        var controller = new OpportunitiesController(db);
+        var result = await controller.Delete(opportunity.Id, workspace.Id, CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Null(await db.Opportunities.FindAsync(opportunity.Id));
+    }
+
+    [Fact]
+    public async Task Delete_rejects_opportunity_from_another_workspace()
+    {
+        await using var db = CreateDb();
+        var owner = new Workspace { Name = "Owner" };
+        var other = new Workspace { Name = "Other" };
+        var opportunity = new Opportunity { WorkspaceId = owner.Id, Title = "Private", OpportunityScore = 50, RevenueScore = 50 };
+        db.Workspaces.AddRange(owner, other);
+        db.Opportunities.Add(opportunity);
+        await db.SaveChangesAsync();
+
+        var controller = new OpportunitiesController(db);
+        var result = await controller.Delete(opportunity.Id, other.Id, CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+        Assert.NotNull(await db.Opportunities.FindAsync(opportunity.Id));
+    }
+
     private static YoutubeStudioDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<YoutubeStudioDbContext>()
