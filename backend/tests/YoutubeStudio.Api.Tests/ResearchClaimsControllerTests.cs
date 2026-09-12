@@ -46,6 +46,35 @@ public sealed class ResearchClaimsControllerTests
     }
 
     [Fact]
+    public async Task Create_rejects_invalid_metadata_json()
+    {
+        await using var db = CreateDb();
+        var (workspace, project, evidence, _) = await AddResearchAsync(db);
+        var controller = new ResearchClaimsController(db);
+
+        var result = await controller.Create(project.Id,
+            new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id], MetadataJson: "not-json"), CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Equal("MetadataJson must be a valid JSON object.", badRequest.Value);
+        Assert.Empty(db.ResearchClaims);
+    }
+
+    [Fact]
+    public async Task Create_rejects_non_object_metadata_json()
+    {
+        await using var db = CreateDb();
+        var (workspace, project, evidence, _) = await AddResearchAsync(db);
+        var controller = new ResearchClaimsController(db);
+
+        var result = await controller.Create(project.Id,
+            new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id], MetadataJson: "[]"), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Empty(db.ResearchClaims);
+    }
+
+    [Fact]
     public async Task Verification_update_is_workspace_scoped()
     {
         await using var db = CreateDb();
