@@ -194,6 +194,7 @@ The project is executed **incrementally and in dependency order**. A release is 
 - [x] CI/test-project compatibility fixes
 - [x] Validation-test corrections aligned with ASP.NET Core controller behavior
 - [x] README pipeline image and implementation checklist
+- [x] Deterministic EF/Npgsql PostgreSQL 17 model configuration for CI migrations
 
 ### Next work, in strict order
 
@@ -362,7 +363,9 @@ The current priority is to complete the MVP production vertical slice before mov
 - .NET 10 SDK
 - Node.js 20+ recommended
 - npm
-- PostgreSQL 16+ with the `vector` extension available for the planned AI/vector features
+- PostgreSQL 17 with the `vector` extension available for the planned AI/vector features
+
+The backend pins the Npgsql EF model to PostgreSQL 17 so migrations are deterministic across local development and CI. If a different PostgreSQL major version is adopted later, update the provider configuration and migration snapshot together rather than relying on environment-specific model inference.
 
 ### Backend
 
