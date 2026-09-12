@@ -9,4 +9,5 @@ public sealed class ResearchEvidence : Entity
     public string? Context { get; set; }
     public string MetadataJson { get; set; } = "{}";
     public ResearchSource ResearchSource { get; set; } = null!;
+    public ICollection<ResearchClaimEvidence> ClaimLinks { get; set; } = [];
 }
