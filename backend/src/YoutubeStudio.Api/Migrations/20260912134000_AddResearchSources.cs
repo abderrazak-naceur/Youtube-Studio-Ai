@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace YoutubeStudio.Api.Migrations;
 
+[Migration("20260912134000_AddResearchSources")]
 public partial class AddResearchSources : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
