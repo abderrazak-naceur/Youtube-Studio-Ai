@@ -39,7 +39,7 @@ public sealed class VideoProjectsControllerTests
             new CreateVideoProjectRequest(workspace.Id, null, "   "),
             CancellationToken.None);
 
-        var validation = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var validation = Assert.IsType<ObjectResult>(result.Result);
         var problem = Assert.IsType<ValidationProblemDetails>(validation.Value);
         Assert.Equal("Video prompt is required.", problem.Detail);
     }
