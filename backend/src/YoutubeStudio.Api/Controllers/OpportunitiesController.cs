@@ -27,6 +27,8 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         if (!IsSupportedDirection(direction))
             return BadRequest("Direction must be asc or desc.");
 
+        var normalizedSort = sort.Trim().ToLowerInvariant();
+        var normalizedDirection = direction.Trim().ToLowerInvariant();
         var query = db.Opportunities
             .AsNoTracking()
             .Where(x => x.WorkspaceId == workspaceId);
@@ -37,11 +39,11 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
             query = query.Where(x => x.Status == status);
         }
 
-        query = (sort, direction) switch
+        query = (normalizedSort, normalizedDirection) switch
         {
-            ("opportunityScore", "asc") => query.OrderBy(x => x.OpportunityScore).ThenBy(x => x.Title),
-            ("opportunityScore", _) => query.OrderByDescending(x => x.OpportunityScore).ThenBy(x => x.Title),
-            ("revenueScore", "asc") => query.OrderBy(x => x.RevenueScore).ThenBy(x => x.Title),
+            ("opportunityscore", "asc") => query.OrderBy(x => x.OpportunityScore).ThenBy(x => x.Title),
+            ("opportunityscore", "desc") => query.OrderByDescending(x => x.OpportunityScore).ThenBy(x => x.Title),
+            ("revenuescore", "asc") => query.OrderBy(x => x.RevenueScore).ThenBy(x => x.Title),
             _ => query.OrderByDescending(x => x.RevenueScore).ThenBy(x => x.Title)
         };
 
