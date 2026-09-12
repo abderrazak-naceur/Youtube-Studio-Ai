@@ -38,21 +38,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          snapshot='backend/src/YoutubeStudio.Api/Migrations/YoutubeStudioDbContextModelSnapshot.cs'
-          dotnet ef migrations add CiModelDiff \
-            --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj \
-            --output-dir /tmp/ef-model-diff \
-            --no-build
-
-          migration_file=$(find /tmp/ef-model-diff -type f -name '*_CiModelDiff.cs' -print -quit)
-          if [ -n "$migration_file" ]; then
-            echo 'EF Core detected model changes that are not represented by the committed migration snapshot:'
-            cat "$migration_file"
-            git checkout -- "$snapshot"
-            exit 1
+          if dotnet ef migrations has-pending-model-changes \
+            --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj; then
+            echo 'EF Core model snapshot is current.'
+          else
+            status=$?
+            echo 'EF Core reports pending model changes; migration snapshot must be synchronized.'
+            dotnet ef migrations has-pending-model-changes \
+              --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj || true
+            exit "$status"
           fi
-
-          git checkout -- "$snapshot"
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
       - name: Verify EF Core migrations and production schema
