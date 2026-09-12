@@ -14,6 +14,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
     {
 #pragma warning disable 612, 618
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
+        modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b =>
@@ -100,7 +101,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("Type").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("VideoProjectId").HasColumnType("uuid");
-            b.HasKey("Id").HasName("PK_production_artifacts");
+            b.HasKey("PK_production_artifacts", x => x.Id);
             b.HasIndex("VideoProjectId", "Type").HasDatabaseName("IX_production_artifacts_VideoProjectId_Type");
             b.ToTable("production_artifacts");
         });
