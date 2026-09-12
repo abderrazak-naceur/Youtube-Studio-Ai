@@ -47,33 +47,9 @@ public sealed class ResearchProjectsController(YoutubeStudioDbContext db) : Cont
         db.ResearchSources.Add(source); await db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetSources), new { researchProjectId, workspaceId = source.WorkspaceId }, new ResearchSourceResponse(source.Id, source.ResearchProjectId, source.WorkspaceId, source.Url, source.Title, source.MetadataJson));
     }
-
-    [HttpGet("{researchProjectId:guid}/sources/{sourceId:guid}/evidence")]
-    public async Task<ActionResult<IReadOnlyList<ResearchEvidenceResponse>>> GetEvidence(Guid researchProjectId, Guid sourceId, [FromQuery] Guid workspaceId, CancellationToken cancellationToken)
-    {
-        var sourceExists = await db.ResearchSources.AnyAsync(x => x.Id == sourceId && x.ResearchProjectId == researchProjectId && x.WorkspaceId == workspaceId, cancellationToken);
-        if (!sourceExists) return NotFound("Research source does not exist in the specified workspace.");
-        var evidence = await db.ResearchEvidence.AsNoTracking().Where(x => x.ResearchSourceId == sourceId && x.WorkspaceId == workspaceId).OrderBy(x => x.CreatedAtUtc).Select(x => new ResearchEvidenceResponse(x.Id, x.ResearchSourceId, x.WorkspaceId, x.Quote, x.Locator, x.Context, x.MetadataJson)).ToListAsync(cancellationToken);
-        return Ok(evidence);
-    }
-
-    [HttpPost("{researchProjectId:guid}/sources/{sourceId:guid}/evidence")]
-    public async Task<ActionResult<ResearchEvidenceResponse>> AddEvidence(Guid researchProjectId, Guid sourceId, CreateResearchEvidenceRequest request, CancellationToken cancellationToken)
-    {
-        if (request.ResearchSourceId != sourceId) return BadRequest("Research source id does not match the route.");
-        if (string.IsNullOrWhiteSpace(request.Quote)) return BadRequest("Quote is required.");
-        var sourceExists = await db.ResearchSources.AnyAsync(x => x.Id == sourceId && x.ResearchProjectId == researchProjectId && x.WorkspaceId == request.WorkspaceId, cancellationToken);
-        if (!sourceExists) return NotFound("Research source does not exist in the specified workspace.");
-        var evidence = new ResearchEvidence { WorkspaceId = request.WorkspaceId, ResearchSourceId = sourceId, Quote = request.Quote.Trim(), Locator = string.IsNullOrWhiteSpace(request.Locator) ? null : request.Locator.Trim(), Context = string.IsNullOrWhiteSpace(request.Context) ? null : request.Context.Trim(), MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson) ? "{}" : request.MetadataJson };
-        db.ResearchEvidence.Add(evidence); await db.SaveChangesAsync(cancellationToken);
-        var response = new ResearchEvidenceResponse(evidence.Id, evidence.ResearchSourceId, evidence.WorkspaceId, evidence.Quote, evidence.Locator, evidence.Context, evidence.MetadataJson);
-        return CreatedAtAction(nameof(GetEvidence), new { researchProjectId, sourceId, workspaceId = evidence.WorkspaceId }, response);
-    }
 }
 
 public sealed record CreateResearchProjectRequest(Guid WorkspaceId, Guid OpportunityId);
 public sealed record ResearchProjectResponse(Guid Id, Guid WorkspaceId, Guid OpportunityId, string Status);
 public sealed record CreateResearchSourceRequest(Guid WorkspaceId, Guid ResearchProjectId, string Url, string Title, string? MetadataJson);
 public sealed record ResearchSourceResponse(Guid Id, Guid ResearchProjectId, Guid WorkspaceId, string Url, string Title, string MetadataJson);
-public sealed record CreateResearchEvidenceRequest(Guid WorkspaceId, Guid ResearchSourceId, string Quote, string? Locator, string? Context, string? MetadataJson);
-public sealed record ResearchEvidenceResponse(Guid Id, Guid ResearchSourceId, Guid WorkspaceId, string Quote, string? Locator, string? Context, string MetadataJson);
