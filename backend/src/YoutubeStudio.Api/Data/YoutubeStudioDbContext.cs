@@ -20,98 +20,35 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
 
         modelBuilder.Entity<Workspace>(entity =>
         {
-            entity.ToTable("workspaces");
-            entity.HasKey(x => x.Id).HasName("pk_workspaces");
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.HasIndex(x => x.Name).HasDatabaseName("ix_workspaces_name");
+            entity.ToTable("workspaces"); entity.HasKey(x => x.Id).HasName("pk_workspaces"); entity.Property(x => x.Name).HasMaxLength(200).IsRequired(); entity.HasIndex(x => x.Name).HasDatabaseName("ix_workspaces_name");
         });
-
         modelBuilder.Entity<Channel>(entity =>
         {
-            entity.ToTable("channels");
-            entity.HasKey(x => x.Id).HasName("pk_channels");
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Platform).HasMaxLength(50).IsRequired();
-            entity.HasOne(x => x.Workspace).WithMany(x => x.Channels).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.WorkspaceId, x.Name }).HasDatabaseName("ix_channels_workspace_id_name");
+            entity.ToTable("channels"); entity.HasKey(x => x.Id).HasName("pk_channels"); entity.Property(x => x.Name).HasMaxLength(200).IsRequired(); entity.Property(x => x.Platform).HasMaxLength(50).IsRequired(); entity.HasOne(x => x.Workspace).WithMany(x => x.Channels).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.WorkspaceId, x.Name }).HasDatabaseName("ix_channels_workspace_id_name");
         });
-
         modelBuilder.Entity<Opportunity>(entity =>
         {
-            entity.ToTable("opportunities");
-            entity.HasKey(x => x.Id).HasName("pk_opportunities");
-            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
-            entity.Property(x => x.Status).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.OpportunityScore).HasPrecision(5, 2);
-            entity.Property(x => x.RevenueScore).HasPrecision(5, 2);
-            entity.HasOne(x => x.Workspace).WithMany(x => x.Opportunities).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.WorkspaceId, x.Status }).HasDatabaseName("ix_opportunities_workspace_id_status");
+            entity.ToTable("opportunities"); entity.HasKey(x => x.Id).HasName("pk_opportunities"); entity.Property(x => x.Title).HasMaxLength(500).IsRequired(); entity.Property(x => x.Status).HasMaxLength(50).IsRequired(); entity.Property(x => x.OpportunityScore).HasPrecision(5, 2); entity.Property(x => x.RevenueScore).HasPrecision(5, 2); entity.HasOne(x => x.Workspace).WithMany(x => x.Opportunities).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.WorkspaceId, x.Status }).HasDatabaseName("ix_opportunities_workspace_id_status");
         });
-
         modelBuilder.Entity<ResearchProject>(entity =>
         {
-            entity.ToTable("research_projects");
-            entity.HasKey(x => x.Id).HasName("pk_research_projects");
-            entity.Property(x => x.Status).HasMaxLength(50).IsRequired();
-            entity.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }).HasDatabaseName("ix_research_projects_workspace_id_created_at");
-            entity.HasIndex(x => x.OpportunityId).IsUnique();
+            entity.ToTable("research_projects"); entity.HasKey(x => x.Id).HasName("pk_research_projects"); entity.Property(x => x.Status).HasMaxLength(50).IsRequired(); entity.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }).HasDatabaseName("ix_research_projects_workspace_id_created_at"); entity.HasIndex(x => x.OpportunityId).IsUnique();
         });
-
         modelBuilder.Entity<ResearchSource>(entity =>
         {
-            entity.ToTable("research_sources");
-            entity.HasKey(x => x.Id).HasName("pk_research_sources");
-<<<<<<< HEAD
-            entity.Property(x => x.Url).HasMaxLength(2048).IsRequired();
-            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
-            entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired();
-            entity.HasOne(x => x.ResearchProject).WithMany(x => x.Sources).HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.ResearchProjectId, x.CreatedAtUtc }).HasDatabaseName("ix_research_sources_project_id_created_at");
-            entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_project_id");
-=======
-            entity.Property(x => x.Url).HasMaxLength(2000).IsRequired();
-            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
-            entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired();
-            entity.HasOne(x => x.ResearchProject).WithMany().HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_research_project_id");
->>>>>>> 4d0ef9be56dad7b068e78e0a3779a157e56d7040
+            entity.ToTable("research_sources"); entity.HasKey(x => x.Id).HasName("pk_research_sources"); entity.Property(x => x.Url).HasMaxLength(2048).IsRequired(); entity.Property(x => x.Title).HasMaxLength(500).IsRequired(); entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired(); entity.HasOne(x => x.ResearchProject).WithMany(x => x.Sources).HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.ResearchProjectId, x.CreatedAtUtc }).HasDatabaseName("ix_research_sources_project_id_created_at"); entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_project_id");
         });
-
         modelBuilder.Entity<VideoProject>(entity =>
         {
-            entity.ToTable("video_projects");
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Prompt).HasMaxLength(10000).IsRequired();
-            entity.Property(x => x.Title).HasMaxLength(500);
-            entity.Property(x => x.Script).HasMaxLength(100000);
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
-            entity.HasOne(x => x.Workspace).WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(x => x.Channel).WithMany().HasForeignKey(x => x.ChannelId).OnDelete(DeleteBehavior.SetNull);
-            entity.HasIndex(x => new { x.WorkspaceId, x.Status });
+            entity.ToTable("video_projects"); entity.HasKey(x => x.Id); entity.Property(x => x.Prompt).HasMaxLength(10000).IsRequired(); entity.Property(x => x.Title).HasMaxLength(500); entity.Property(x => x.Script).HasMaxLength(100000); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.HasOne(x => x.Workspace).WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasOne(x => x.Channel).WithMany().HasForeignKey(x => x.ChannelId).OnDelete(DeleteBehavior.SetNull); entity.HasIndex(x => new { x.WorkspaceId, x.Status });
         });
-
         modelBuilder.Entity<ProductionJob>(entity =>
         {
-            entity.ToTable("production_jobs");
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Error).HasMaxLength(4000);
-            entity.Property(x => x.LastCompletedStage).HasMaxLength(50);
-            entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc });
+            entity.ToTable("production_jobs"); entity.HasKey(x => x.Id); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.Property(x => x.Error).HasMaxLength(4000); entity.Property(x => x.LastCompletedStage).HasMaxLength(50); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc });
         });
-
         modelBuilder.Entity<ProductionArtifact>(entity =>
         {
-            entity.ToTable("production_artifacts");
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired();
-            entity.Property(x => x.ProviderAssetId).HasMaxLength(500).IsRequired();
-            entity.Property(x => x.Content).HasMaxLength(200000);
-            entity.Property(x => x.MetadataJson).HasMaxLength(200000);
-            entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasIndex(x => new { x.VideoProjectId, x.Type });
+            entity.ToTable("production_artifacts"); entity.HasKey(x => x.Id); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.Property(x => x.ProviderAssetId).HasMaxLength(500).IsRequired(); entity.Property(x => x.Content).HasMaxLength(200000); entity.Property(x => x.MetadataJson).HasMaxLength(200000); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.Type });
         });
     }
 }
