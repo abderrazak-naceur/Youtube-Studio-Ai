@@ -16,6 +16,12 @@ describe('ResearchWorkspacePanel', () => {
       if (url.includes('/opportunities?')) {
         return Promise.resolve({ ok: true, json: async () => [{ id: 'opportunity-1', title: 'AI creator workflow' }] });
       }
+      if (url.includes('/claims?')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      if (url.includes('/evidence?')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
       return Promise.resolve({ ok: true, json: async () => [{ id: 'source-1', title: 'Primary research', url: 'https://example.com/research', metadataJson: '{}' }] });
     }));
 
