@@ -1,0 +1,43 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ResearchClaimsPanel } from './ResearchClaimsPanel';
+
+describe('ResearchClaimsPanel', () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it('loads workspace-scoped claims and evidence', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'claim-1', text: 'A supported fact', verificationStatus: 'unverified', evidenceIds: ['evidence-1'] }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'evidence-1', quote: 'Exact supporting quote', locator: 'p. 4' }] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ResearchClaimsPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" sources={[{ id: 'source-1', title: 'Official report' }]} />);
+
+    expect(await screen.findByText('A supported fact')).toBeInTheDocument();
+    expect(screen.getByText('Exact supporting quote')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://api.test/api/v1/research-projects/project-1/claims?workspaceId=workspace-1');
+    expect(fetchMock).toHaveBeenNthCalledWith(2, 'http://api.test/api/v1/research-projects/project-1/sources/source-1/evidence?workspaceId=workspace-1');
+  });
+
+  it('creates a claim with selected evidence and default unverified status', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'evidence-1', quote: 'Supporting quote', locator: 'p. 2' }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'claim-1', text: 'New claim', verificationStatus: 'unverified', evidenceIds: ['evidence-1'] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'claim-1', text: 'New claim', verificationStatus: 'unverified', evidenceIds: ['evidence-1'] }] })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: 'evidence-1', quote: 'Supporting quote', locator: 'p. 2' }] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ResearchClaimsPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" sources={[{ id: 'source-1', title: 'Report' }]} />);
+
+    await screen.findByText('Supporting quote');
+    fireEvent.change(screen.getByLabelText('Claim'), { target: { value: 'New claim' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: /Add claim/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('http://api.test/api/v1/research-projects/project-1/claims', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ workspaceId: 'workspace-1', text: 'New claim', evidenceIds: ['evidence-1'], verificationStatus: 'unverified' })
+    })));
+  });
+});
