@@ -20,13 +20,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b =>
         {
-            b.Property<Guid>("Id").HasColumnType("uuid");
-            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
-            b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
-            b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
-            b.HasKey("Id").HasName("pk_workspaces");
-            b.HasIndex("Name").HasDatabaseName("ix_workspaces_name");
-            b.ToTable("workspaces");
+            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_workspaces"); b.HasIndex("Name").HasDatabaseName("ix_workspaces_name"); b.ToTable("workspaces");
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b =>
         {
@@ -47,10 +41,6 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b =>
         {
             b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("Context").HasMaxLength(10000).HasColumnType("character varying(10000)"); b.Property<string>("Locator").HasMaxLength(1000).HasColumnType("character varying(1000)"); b.Property<string>("MetadataJson").IsRequired().HasMaxLength(200000).HasColumnType("character varying(200000)"); b.Property<string>("Quote").IsRequired().HasMaxLength(20000).HasColumnType("character varying(20000)"); b.Property<Guid>("ResearchSourceId").HasColumnType("uuid"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.HasKey("Id").HasName("pk_research_evidence"); b.HasIndex("ResearchSourceId", "CreatedAtUtc").HasDatabaseName("ix_research_evidence_source_id_created_at"); b.HasIndex("WorkspaceId", "ResearchSourceId").HasDatabaseName("ix_research_evidence_workspace_id_source_id"); b.ToTable("research_evidence");
-        });
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b =>
-        {
-            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("MetadataJson").IsRequired().HasMaxLength(200000).HasColumnType("character varying(200000)"); b.PropertyProjectId: null;
         });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b =>
         {
