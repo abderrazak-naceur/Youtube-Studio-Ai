@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YoutubeStudio.Api.Data;
 
 #nullable disable
@@ -21,7 +20,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<Guid>("Id").HasColumnType("uuid");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
-            b.Property<string>("Name").IsRequired().HasMaxLength(200);
+            b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.HasKey("Id").HasName("pk_workspaces");
             b.HasIndex("Name").HasDatabaseName("ix_workspaces_name");
@@ -33,8 +32,8 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("Id").HasColumnType("uuid");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<string>("ExternalChannelId").HasColumnType("text");
-            b.Property<string>("Name").IsRequired().HasMaxLength(200);
-            b.Property<string>("Platform").IsRequired().HasMaxLength(50);
+            b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<string>("Platform").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
             b.HasKey("Id").HasName("pk_channels");
@@ -48,10 +47,10 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("AudienceProblem").HasColumnType("text");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<decimal>("OpportunityScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
-            b.Property<string>("Rationale").HasColumnType("text");
             b.Property<decimal>("RevenueScore").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
-            b.Property<string>("Status").IsRequired().HasMaxLength(50);
-            b.Property<string>("Title").IsRequired().HasMaxLength(500);
+            b.Property<string>("Rationale").HasColumnType("text");
+            b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("Title").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
             b.HasKey("Id").HasName("pk_opportunities");
@@ -64,10 +63,10 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("Id").HasColumnType("uuid");
             b.Property<Guid?>("ChannelId").HasColumnType("uuid");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
-            b.Property<string>("Prompt").IsRequired().HasMaxLength(10000);
-            b.Property<string>("Script").HasMaxLength(100000);
-            b.Property<string>("Status").IsRequired().HasMaxLength(50);
-            b.Property<string>("Title").HasMaxLength(500);
+            b.Property<string>("Prompt").IsRequired().HasMaxLength(10000).HasColumnType("character varying(10000)");
+            b.Property<string>("Script").HasMaxLength(100000).HasColumnType("character varying(100000)");
+            b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("Title").HasMaxLength(500).HasColumnType("character varying(500)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("WorkspaceId").HasColumnType("uuid");
             b.HasKey("Id").HasName("PK_video_projects");
@@ -81,9 +80,9 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("Id").HasColumnType("uuid");
             b.Property<int>("Attempt").HasColumnType("integer");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
-            b.Property<string>("Error").HasMaxLength(4000);
-            b.Property<string>("LastCompletedStage").HasMaxLength(50);
-            b.Property<string>("Status").IsRequired().HasMaxLength(50);
+            b.Property<string>("Error").HasMaxLength(4000).HasColumnType("character varying(4000)");
+            b.Property<string>("LastCompletedStage").HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("VideoProjectId").HasColumnType("uuid");
             b.HasKey("Id").HasName("PK_production_jobs");
@@ -94,11 +93,11 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b =>
         {
             b.Property<Guid>("Id").HasColumnType("uuid");
-            b.Property<string>("Content").HasMaxLength(200000);
+            b.Property<string>("Content").HasMaxLength(200000).HasColumnType("character varying(200000)");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
-            b.Property<string>("MetadataJson").HasMaxLength(200000);
-            b.Property<string>("ProviderAssetId").IsRequired().HasMaxLength(500);
-            b.Property<string>("Type").IsRequired().HasMaxLength(50);
+            b.Property<string>("MetadataJson").HasMaxLength(200000).HasColumnType("character varying(200000)");
+            b.Property<string>("ProviderAssetId").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+            b.Property<string>("Type").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<Guid>("VideoProjectId").HasColumnType("uuid");
             b.HasKey("Id").HasName("PK_production_artifacts");
