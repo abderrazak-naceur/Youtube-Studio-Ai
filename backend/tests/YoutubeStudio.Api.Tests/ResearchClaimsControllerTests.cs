@@ -75,6 +75,21 @@ public sealed class ResearchClaimsControllerTests
     }
 
     [Fact]
+    public async Task Research_claim_evidence_is_a_pure_composite_join_entity()
+    {
+        await using var db = CreateDb();
+        var entity = db.Model.FindEntityType(typeof(ResearchClaimEvidence));
+
+        Assert.NotNull(entity);
+        Assert.Equal(
+            new[] { nameof(ResearchClaimEvidence.ResearchClaimId), nameof(ResearchClaimEvidence.ResearchEvidenceId) },
+            entity!.FindPrimaryKey()!.Properties.Select(property => property.Name).ToArray());
+        Assert.Null(entity.FindProperty("Id"));
+        Assert.Null(entity.FindProperty("CreatedAtUtc"));
+        Assert.Null(entity.FindProperty("UpdatedAtUtc"));
+    }
+
+    [Fact]
     public async Task Verification_update_is_workspace_scoped()
     {
         await using var db = CreateDb();
