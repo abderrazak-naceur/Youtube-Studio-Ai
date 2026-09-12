@@ -69,18 +69,21 @@ jobs:
           grep -q '20260911143000_AddVideoProjects' <<<"$migrations"
           grep -q '20260912001000_AddProductionPipeline' <<<"$migrations"
           grep -q '20260912130000_AddResearchProjects' <<<"$migrations"
+          grep -q '20260912134000_AddResearchSources' <<<"$migrations"
           grep -q '20260912140000_AddResearchSources' <<<"$migrations"
+          grep -q '20260912145000_AddResearchEvidence' <<<"$migrations"
+          grep -q '20260912152000_AddResearchClaims' <<<"$migrations"
 
           PGPASSWORD=postgres psql \
             --host=localhost \
             --port=5432 \
             --username=postgres \
             --dbname=youtube_studio_ai \
-            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"'), to_regclass('"'"'public.research_projects'"'"'), to_regclass('"'"'public.research_sources'"'"');' \
+            --command='SELECT to_regclass('"'"'public.workspaces'"'"'), to_regclass('"'"'public.video_projects'"'"'), to_regclass('"'"'public.production_jobs'"'"'), to_regclass('"'"'public.production_artifacts'"'"'), to_regclass('"'"'public.research_projects'"'"'), to_regclass('"'"'public.research_sources'"'"'), to_regclass('"'"'public.research_evidence'"'"'), to_regclass('"'"'public.research_claims'"'"'), to_regclass('"'"'public.research_claim_evidence'"'"');' \
             --tuples-only \
             --no-align | tee migration-schema.txt
 
-          grep -q 'workspaces|video_projects|production_jobs|production_artifacts|research_projects|research_sources' migration-schema.txt
+          grep -q 'workspaces|video_projects|production_jobs|production_artifacts|research_projects|research_sources|research_evidence|research_claims|research_claim_evidence' migration-schema.txt
       - name: Verify end-to-end video production loop
         shell: bash
         run: |
