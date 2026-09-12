@@ -34,6 +34,25 @@ jobs:
       - run: dotnet build backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj --no-restore
       - name: Install EF Core CLI
         run: dotnet tool install --global dotnet-ef --version 10.0.0
+      - name: Verify EF model snapshot is current
+        shell: bash
+        run: |
+          set -euo pipefail
+          snapshot='backend/src/YoutubeStudio.Api/Migrations/YoutubeStudioDbContextModelSnapshot.cs'
+          dotnet ef migrations add CiModelDiff \
+            --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj \
+            --output-dir /tmp/ef-model-diff \
+            --no-build
+
+          migration_file=$(find /tmp/ef-model-diff -type f -name '*_CiModelDiff.cs' -print -quit)
+          if [ -n "$migration_file" ]; then
+            echo 'EF Core detected model changes that are not represented by the committed migration snapshot:'
+            cat "$migration_file"
+            git checkout -- "$snapshot"
+            exit 1
+          fi
+
+          git checkout -- "$snapshot"
       - name: Apply EF Core migrations
         run: dotnet ef database update --project backend/src/YoutubeStudio.Api/YoutubeStudio.Api.csproj
       - name: Verify EF Core migrations and production schema
