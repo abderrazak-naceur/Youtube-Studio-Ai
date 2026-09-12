@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, FilePlus2, Plus, Trash2 } from 'lucide-react';
 import { ResearchEvidencePanel } from './ResearchEvidencePanel';
+import { ResearchClaimsPanel } from './ResearchClaimsPanel';
 
 type Opportunity = { id: string; title: string };
 type ResearchProject = { id: string; opportunityId: string; status: string };
@@ -98,6 +99,7 @@ export function ResearchWorkspacePanel({ apiBase, workspaceId }: Props) {
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4"><p className="text-sm font-medium">Add a source</p><label className="mt-4 block text-xs text-zinc-500">Title<input aria-label="Source title" value={title} onChange={event => setTitle(event.target.value)} className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-200 outline-none" /></label><label className="mt-3 block text-xs text-zinc-500">URL<input aria-label="Source URL" type="url" value={url} onChange={event => setUrl(event.target.value)} placeholder="https://" className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-200 outline-none" /></label><label className="mt-3 block text-xs text-zinc-500">Metadata JSON optional<textarea aria-label="Source metadata" value={metadataJson} onChange={event => setMetadataJson(event.target.value)} rows={3} placeholder='{ "author": "..." }' className="mt-2 w-full resize-none rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 font-mono text-xs text-zinc-200 outline-none" /></label><button onClick={() => void addSource()} disabled={busy || !selectedProjectId} className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-40"><Plus size={14} /> Add source</button></div>
       </div>
       <ResearchEvidencePanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} sources={sources} />
+      <ResearchClaimsPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} sources={sources} />
     </>}
   </section>;
 }
