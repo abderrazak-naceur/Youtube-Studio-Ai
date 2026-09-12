@@ -1,10 +1,18 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResearchClaimsPanel } from './ResearchClaimsPanel';
 
 describe('ResearchClaimsPanel', () => {
-  beforeEach(() => vi.restoreAllMocks());
-  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
   it('loads workspace-scoped claims and evidence', async () => {
     const fetchMock = vi.fn()
