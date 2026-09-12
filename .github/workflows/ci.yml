@@ -85,16 +85,6 @@ jobs:
             }
           done
 
-          PGPASSWORD=postgres psql \
-            --host=localhost \
-            --port=5432 \
-            --username=postgres \
-            --dbname=youtube_studio_ai \
-            --command="\\copy (SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('workspaces','video_projects','production_jobs','production_artifacts','research_projects','research_sources','research_evidence','research_claims','research_claim_evidence') ORDER BY table_name) TO STDOUT WITH (FORMAT csv, HEADER false)" \
-            > migration-schema.txt
-          printf 'Production tables:\n'
-          cat migration-schema.txt
-
           expected_tables=(
             workspaces
             video_projects
@@ -107,7 +97,16 @@ jobs:
             research_claim_evidence
           )
           for table in "${expected_tables[@]}"; do
-            grep -Fxq "$table" migration-schema.txt || {
+            actual=$(PGPASSWORD=postgres psql \
+              --host=localhost \
+              --port=5432 \
+              --username=postgres \
+              --dbname=youtube_studio_ai \
+              --tuples-only \
+              --no-align \
+              --command="SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table'")
+            actual=$(printf '%s' "$actual" | tr -d '[:space:]')
+            test "$actual" = "$table" || {
               echo "Missing production table: $table"
               exit 1
             }
