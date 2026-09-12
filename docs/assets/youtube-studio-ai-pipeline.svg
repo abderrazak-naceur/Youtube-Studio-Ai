@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="260" viewBox="0 0 1400 260" role="img" aria-labelledby="title desc">
+  <title id="title">YouTube Studio AI production pipeline</title>
+  <desc id="desc">Idea prompt through research, script, scene plan, production, rendering, quality assurance and professional MP4.</desc>
+  <rect width="1400" height="260" rx="24" fill="#f8fafc"/>
+  <text x="700" y="42" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0f172a">YouTube Studio AI — MVP Production Pipeline</text>
+  <g font-family="Arial, sans-serif" font-size="14" font-weight="600" text-anchor="middle">
+    <g fill="#ffffff" stroke="#cbd5e1" stroke-width="2">
+      <rect x="30" y="92" width="130" height="58" rx="12"/><rect x="180" y="92" width="130" height="58" rx="12"/>
+      <rect x="330" y="92" width="130" height="58" rx="12"/><rect x="480" y="92" width="130" height="58" rx="12"/>
+      <rect x="630" y="92" width="150" height="58" rx="12"/><rect x="800" y="92" width="130" height="58" rx="12"/>
+      <rect x="950" y="92" width="130" height="58" rx="12"/><rect x="1100" y="92" width="130" height="58" rx="12"/>
+      <rect x="1250" y="92" width="120" height="58" rx="12"/>
+    </g>
+    <g fill="#0f172a">
+      <text x="95" y="126">Idea / Prompt</text><text x="245" y="126">Research</text><text x="395" y="126">Script</text><text x="545" y="126">Scene Plan</text>
+      <text x="705" y="119">Visuals · Voice</text><text x="705" y="139">Music / SFX · Captions</text>
+      <text x="865" y="126">Render</text><text x="1015" y="126">QA</text><text x="1165" y="119">Professional</text><text x="1165" y="139">MP4</text><text x="1310" y="126">Publish</text>
+    </g>
+  </g>
+  <g stroke="#64748b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M160 121h20M310 121h20M460 121h20M610 121h20M780 121h20M930 121h20M1080 121h20M1230 121h20"/>
+    <path d="M172 115l8 6-8 6M322 115l8 6-8 6M472 115l8 6-8 6M622 115l8 6-8 6M792 115l8 6-8 6M942 115l8 6-8 6M1092 115l8 6-8 6M1242 115l8 6-8 6"/>
+  </g>
+  <text x="700" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#475569">Replaceable provider adapters • PostgreSQL • .NET 10 • React/Vite • Tailwind CSS</text>
+</svg>
