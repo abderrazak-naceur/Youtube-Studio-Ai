@@ -28,7 +28,7 @@ describe('ResearchWorkspacePanel', () => {
     render(<ResearchWorkspacePanel apiBase="http://api.test" workspaceId="workspace-1" />);
 
     expect(await screen.findByRole('option', { name: /AI creator workflow.*draft/i })).toBeInTheDocument();
-    expect(await screen.findByText('Primary research')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 3, name: 'Primary research' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /https:\/\/example\.com\/research/i })).toHaveAttribute('href', 'https://example.com/research');
   });
 });
