@@ -14,6 +14,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
     {
 #pragma warning disable 612, 618
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
+        modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 63);
         modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
         modelBuilder.HasPostgresExtension("vector");
 
