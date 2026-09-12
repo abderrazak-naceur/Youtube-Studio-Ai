@@ -16,7 +16,6 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
         modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 63);
         modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
-        modelBuilder.HasAnnotation("Npgsql:PostgresModelCustomizer:PostgresVersion", new Version(17, 0));
         modelBuilder.HasPostgresExtension("vector");
 
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b =>
@@ -80,14 +79,13 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Sources"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("Evidence"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.Navigation("ResearchSource"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.Navigation("ClaimLinks"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.Navigation("EvidenceLinks"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaimEvidence", b => { b.Navigation("ResearchClaim"); b.Navigation("ResearchEvidence"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b => { b.Navigation("Channel"); b.Navigation("Workspace"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionJob", b => b.Navigation("VideoProject"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b => b.Navigation("ProductionArtifact");
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b => b.Navigation("VideoProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.Workspace", b => { b.Navigation("Channels"); b.Navigation("Opportunities"); });
 #pragma warning restore 612, 618
     }
