@@ -9,6 +9,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<Channel> Channels => Set<Channel>();
     public DbSet<Opportunity> Opportunities => Set<Opportunity>();
     public DbSet<ResearchProject> ResearchProjects => Set<ResearchProject>();
+    public DbSet<ResearchSource> ResearchSources => Set<ResearchSource>();
     public DbSet<VideoProject> VideoProjects => Set<VideoProject>();
     public DbSet<ProductionJob> ProductionJobs => Set<ProductionJob>();
     public DbSet<ProductionArtifact> ProductionArtifacts => Set<ProductionArtifact>();
@@ -55,6 +56,17 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
             entity.HasOne(x => x.Opportunity).WithMany().HasForeignKey(x => x.OpportunityId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }).HasDatabaseName("ix_research_projects_workspace_id_created_at");
             entity.HasIndex(x => x.OpportunityId).IsUnique();
+        });
+
+        modelBuilder.Entity<ResearchSource>(entity =>
+        {
+            entity.ToTable("research_sources");
+            entity.HasKey(x => x.Id).HasName("pk_research_sources");
+            entity.Property(x => x.Url).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.MetadataJson).HasMaxLength(200000).IsRequired();
+            entity.HasOne(x => x.ResearchProject).WithMany().HasForeignKey(x => x.ResearchProjectId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(x => new { x.WorkspaceId, x.ResearchProjectId }).HasDatabaseName("ix_research_sources_workspace_id_research_project_id");
         });
 
         modelBuilder.Entity<VideoProject>(entity =>
