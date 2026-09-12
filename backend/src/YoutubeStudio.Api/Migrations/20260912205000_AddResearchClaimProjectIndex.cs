@@ -1,9 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using YoutubeStudio.Api.Data;
 
 #nullable disable
 
 namespace YoutubeStudio.Api.Migrations;
 
+[DbContext(typeof(YoutubeStudioDbContext))]
 [Migration("20260912205000_AddResearchClaimProjectIndex")]
 public partial class AddResearchClaimProjectIndex : Migration
 {
