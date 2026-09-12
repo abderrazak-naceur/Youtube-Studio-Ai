@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
@@ -42,6 +43,9 @@ public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : Contro
         if (request.EvidenceIds is null || request.EvidenceIds.Count == 0) return BadRequest("At least one evidence record is required for a claim.");
         if (!VerificationStatuses.Contains(request.VerificationStatus ?? "unverified")) return BadRequest("Verification status must be unverified, verified or disputed.");
 
+        var metadataJson = string.IsNullOrWhiteSpace(request.MetadataJson) ? "{}" : request.MetadataJson.Trim();
+        if (!IsValidJsonObject(metadataJson)) return BadRequest("MetadataJson must be a valid JSON object.");
+
         var evidenceIds = request.EvidenceIds.Distinct().ToArray();
         var validEvidenceIds = await db.ResearchEvidence.AsNoTracking()
             .Where(e => evidenceIds.Contains(e.Id) && e.WorkspaceId == request.WorkspaceId && e.ResearchSource.ResearchProjectId == researchProjectId && e.ResearchSource.WorkspaceId == request.WorkspaceId)
@@ -56,7 +60,7 @@ public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : Contro
             ResearchProjectId = researchProjectId,
             Text = request.Text.Trim(),
             VerificationStatus = request.VerificationStatus ?? "unverified",
-            MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson) ? "{}" : request.MetadataJson.Trim()
+            MetadataJson = metadataJson
         };
         db.ResearchClaims.Add(claim);
         foreach (var evidenceId in evidenceIds) db.ResearchClaimEvidence.Add(new ResearchClaimEvidence { ResearchClaimId = claim.Id, ResearchEvidenceId = evidenceId });
@@ -79,6 +83,19 @@ public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : Contro
         claim.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return Ok(await ToResponseAsync(claim.Id, cancellationToken));
+    }
+
+    private static bool IsValidJsonObject(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind == JsonValueKind.Object;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private Task<bool> ProjectExistsAsync(Guid projectId, Guid workspaceId, CancellationToken cancellationToken) => db.ResearchProjects.AnyAsync(x => x.Id == projectId && x.WorkspaceId == workspaceId, cancellationToken);
