@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace YoutubeStudio.Api.Migrations;
 
+[Migration("20260912205000_AddResearchClaimProjectIndex")]
 public partial class AddResearchClaimProjectIndex : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
