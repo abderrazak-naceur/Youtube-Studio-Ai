@@ -1,10 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
+using YoutubeStudio.Api.Data;
 
 #nullable disable
 
 namespace YoutubeStudio.Api.Migrations;
 
+[DbContext(typeof(YoutubeStudioDbContext))]
 [Migration("20260911143000_AddVideoProjects")]
 public partial class AddVideoProjects : Migration
 {
