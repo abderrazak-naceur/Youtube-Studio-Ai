@@ -27,29 +27,7 @@ public sealed class ResearchProjectsController(YoutubeStudioDbContext db) : Cont
         db.ResearchProjects.Add(project); await db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetAll), new { workspaceId = project.WorkspaceId }, new ResearchProjectResponse(project.Id, project.WorkspaceId, project.OpportunityId, project.Status));
     }
-
-    [HttpGet("{researchProjectId:guid}/sources")]
-    public async Task<ActionResult<IReadOnlyList<ResearchSourceResponse>>> GetSources(Guid researchProjectId, [FromQuery] Guid workspaceId, CancellationToken cancellationToken)
-    {
-        if (!await db.ResearchProjects.AnyAsync(x => x.Id == researchProjectId && x.WorkspaceId == workspaceId, cancellationToken)) return NotFound("Research project does not exist in the specified workspace.");
-        var sources = await db.ResearchSources.AsNoTracking().Where(x => x.ResearchProjectId == researchProjectId && x.WorkspaceId == workspaceId).OrderBy(x => x.CreatedAtUtc).Select(x => new ResearchSourceResponse(x.Id, x.ResearchProjectId, x.WorkspaceId, x.Url, x.Title, x.MetadataJson)).ToListAsync(cancellationToken);
-        return Ok(sources);
-    }
-
-    [HttpPost("{researchProjectId:guid}/sources")]
-    public async Task<ActionResult<ResearchSourceResponse>> AddSource(Guid researchProjectId, CreateResearchSourceRequest request, CancellationToken cancellationToken)
-    {
-        if (request.ResearchProjectId != researchProjectId) return BadRequest("Research project id does not match the route.");
-        if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return BadRequest("Url must be an absolute HTTP or HTTPS URL.");
-        if (string.IsNullOrWhiteSpace(request.Title)) return BadRequest("Title is required.");
-        if (!await db.ResearchProjects.AnyAsync(x => x.Id == researchProjectId && x.WorkspaceId == request.WorkspaceId, cancellationToken)) return NotFound("Research project does not exist in the specified workspace.");
-        var source = new ResearchSource { WorkspaceId = request.WorkspaceId, ResearchProjectId = researchProjectId, Url = request.Url.Trim(), Title = request.Title.Trim(), MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson) ? "{}" : request.MetadataJson };
-        db.ResearchSources.Add(source); await db.SaveChangesAsync(cancellationToken);
-        return CreatedAtAction(nameof(GetSources), new { researchProjectId, workspaceId = source.WorkspaceId }, new ResearchSourceResponse(source.Id, source.ResearchProjectId, source.WorkspaceId, source.Url, source.Title, source.MetadataJson));
-    }
 }
 
 public sealed record CreateResearchProjectRequest(Guid WorkspaceId, Guid OpportunityId);
 public sealed record ResearchProjectResponse(Guid Id, Guid WorkspaceId, Guid OpportunityId, string Status);
-public sealed record CreateResearchSourceRequest(Guid WorkspaceId, Guid ResearchProjectId, string Url, string Title, string? MetadataJson);
-public sealed record ResearchSourceResponse(Guid Id, Guid ResearchProjectId, Guid WorkspaceId, string Url, string Title, string MetadataJson);
