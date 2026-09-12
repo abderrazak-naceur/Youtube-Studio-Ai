@@ -29,9 +29,10 @@ describe('ResearchEvidencePanel', () => {
     fireEvent.change(screen.getByLabelText('Evidence locator'), { target: { value: 'p. 10' } });
     fireEvent.click(screen.getByRole('button', { name: /Add evidence/i }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/research-projects/project-1/sources/source-1/evidence', expect.objectContaining({
+    const expectedCreate = {
       method: 'POST',
       body: JSON.stringify({ workspaceId: 'workspace-1', researchSourceId: 'source-1', quote: 'Exact quote', locator: 'p. 10', context: null, metadataJson: null })
-    }));
+    };
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/research-projects/project-1/sources/source-1/evidence', expectedCreate));
   });
 });
