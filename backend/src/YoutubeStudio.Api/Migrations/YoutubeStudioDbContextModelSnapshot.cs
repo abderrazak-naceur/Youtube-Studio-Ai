@@ -79,9 +79,8 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Sources"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("Evidence"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.Navigation("ClaimLinks"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.Navigation("ResearchProject"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.Navigation("EvidenceLinks"));
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => { b.Navigation("ResearchSource"); b.Navigation("ClaimLinks"); });
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => { b.Navigation("ResearchProject"); b.Navigation("EvidenceLinks"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaimEvidence", b => { b.Navigation("ResearchClaim"); b.Navigation("ResearchEvidence"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b => { b.Navigation("Channel"); b.Navigation("Workspace"); });
         modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionJob", b => b.Navigation("VideoProject"));
