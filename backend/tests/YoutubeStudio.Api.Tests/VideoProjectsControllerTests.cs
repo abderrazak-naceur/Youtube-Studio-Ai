@@ -145,6 +145,39 @@ public sealed class VideoProjectsControllerTests
     }
 
     [Fact]
+    public async Task GenerateScript_returns_bad_gateway_when_provider_returns_empty_result()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        var project = new VideoProject
+        {
+            WorkspaceId = workspace.Id,
+            Prompt = "Create a video about AI",
+            Status = VideoProjectStatus.Draft,
+            Title = "Original title",
+            Script = "Original script"
+        };
+        db.Workspaces.Add(workspace);
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = new VideoProjectsController(db, new ProductionJobService(db), new EmptyScriptProvider());
+        var result = await controller.GenerateScript(
+            project.Id,
+            new GenerateScriptRequest("Verified research context"),
+            CancellationToken.None);
+
+        var problem = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(StatusCodes.Status502BadGateway, problem.StatusCode);
+        Assert.Equal("The script provider returned an empty script.", ((ProblemDetails)problem.Value!).Detail);
+
+        var persisted = await db.VideoProjects.SingleAsync(x => x.Id == project.Id);
+        Assert.Equal(VideoProjectStatus.Draft, persisted.Status);
+        Assert.Equal("Original title", persisted.Title);
+        Assert.Equal("Original script", persisted.Script);
+    }
+
+    [Fact]
     public async Task GenerateScript_persists_provider_result_and_marks_project_scripted()
     {
         await using var db = CreateDb();
@@ -259,5 +292,11 @@ public sealed class VideoProjectsControllerTests
             Request = request;
             return Task.FromResult(new ScriptResult("AI Explained", "HOOK: AI changes how creators work."));
         }
+    }
+
+    private sealed class EmptyScriptProvider : IScriptProvider
+    {
+        public Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(new ScriptResult("  ", "  "));
     }
 }
