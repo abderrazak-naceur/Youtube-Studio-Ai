@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
@@ -12,7 +13,8 @@ namespace YoutubeStudio.Api.Controllers;
 public sealed class VideoProjectsController(
     YoutubeStudioDbContext db,
     IProductionJobService productionJobs,
-    IScriptProvider scriptProvider) : ControllerBase
+    IScriptProvider scriptProvider,
+    IScenePlanProvider scenePlanProvider) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<VideoProjectListItemResponse>>> List([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
@@ -78,6 +80,39 @@ public sealed class VideoProjectsController(
         return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null));
     }
 
+    [HttpPost("{id:guid}/scene-plan")]
+    public async Task<ActionResult<VideoProjectResponse>> GenerateScenePlan(Guid id, CancellationToken cancellationToken)
+    {
+        var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(project.Title) || string.IsNullOrWhiteSpace(project.Script))
+            return ValidationProblem("A title and script are required to generate a scene plan.");
+        if (project.Status != VideoProjectStatus.Scripted)
+            return Conflict("The video project must be scripted before generating a scene plan.");
+
+        var result = await scenePlanProvider.CreateScenePlanAsync(
+            new ScenePlanRequest(project.Title.Trim(), project.Script.Trim()),
+            cancellationToken);
+
+        if (!HasValidScenePlan(result))
+            return Problem("The scene-plan provider returned an invalid scene plan.", statusCode: StatusCodes.Status502BadGateway);
+
+        db.ProductionArtifacts.Add(new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = ProductionArtifactType.ScenePlan,
+            ProviderAssetId = "scene-plan",
+            Content = JsonSerializer.Serialize(result.Scenes),
+            MetadataJson = JsonSerializer.Serialize(new { sceneCount = result.Scenes.Count })
+        });
+
+        project.Status = VideoProjectStatus.Planned;
+        project.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null));
+    }
+
     [HttpPost("{id:guid}/start")]
     public async Task<ActionResult<VideoProjectResponse>> Start(Guid id, CancellationToken cancellationToken)
     {
@@ -89,6 +124,13 @@ public sealed class VideoProjectsController(
         var job = await productionJobs.EnqueueAsync(project, cancellationToken);
         return AcceptedAtAction(nameof(Get), new { id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.LastCompletedStage, job.Error)));
     }
+
+    private static bool HasValidScenePlan(ScenePlanResult result) =>
+        result.Scenes is { Count: > 0 } && result.Scenes.All(scene =>
+            scene.Number > 0 &&
+            scene.DurationSeconds > 0 &&
+            !string.IsNullOrWhiteSpace(scene.Narration) &&
+            !string.IsNullOrWhiteSpace(scene.VisualDirection));
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
