@@ -99,7 +99,7 @@ public sealed class ResearchProjectsControllerTests
     }
 
     [Fact]
-    public async Task AddSource_persists_source_for_project()
+    public async Task Create_source_persists_source_for_project()
     {
         await using var db = CreateDb();
         var workspace = new Workspace { Name = "Creator workspace" };
@@ -110,10 +110,10 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
-        var result = await controller.AddSource(
+        var controller = new ResearchSourcesController(db);
+        var result = await controller.Create(
             project.Id,
-            new CreateResearchSourceRequest(workspace.Id, project.Id, "https://example.com/article", "Example article", "{\"author\":\"Test\"}"),
+            new CreateResearchSourceRequest(workspace.Id, "https://example.com/article", "Example article", "{\"author\":\"Test\"}"),
             CancellationToken.None);
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
@@ -127,7 +127,7 @@ public sealed class ResearchProjectsControllerTests
     }
 
     [Fact]
-    public async Task AddSource_rejects_project_from_another_workspace()
+    public async Task Create_source_rejects_project_from_another_workspace()
     {
         await using var db = CreateDb();
         var owner = new Workspace { Name = "Owner" };
@@ -139,10 +139,10 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
-        var result = await controller.AddSource(
+        var controller = new ResearchSourcesController(db);
+        var result = await controller.Create(
             project.Id,
-            new CreateResearchSourceRequest(other.Id, project.Id, "https://example.com/private", "Private", null),
+            new CreateResearchSourceRequest(other.Id, "https://example.com/private", "Private", null),
             CancellationToken.None);
 
         Assert.IsType<NotFoundObjectResult>(result.Result);
@@ -150,7 +150,7 @@ public sealed class ResearchProjectsControllerTests
     }
 
     [Fact]
-    public async Task AddSource_rejects_non_http_url()
+    public async Task Create_source_rejects_non_http_url()
     {
         await using var db = CreateDb();
         var workspace = new Workspace { Name = "Creator workspace" };
@@ -161,10 +161,10 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
-        var result = await controller.AddSource(
+        var controller = new ResearchSourcesController(db);
+        var result = await controller.Create(
             project.Id,
-            new CreateResearchSourceRequest(workspace.Id, project.Id, "ftp://example.com/article", "Example", null),
+            new CreateResearchSourceRequest(workspace.Id, "ftp://example.com/article", "Example", null),
             CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
@@ -172,7 +172,7 @@ public sealed class ResearchProjectsControllerTests
     }
 
     [Fact]
-    public async Task GetSources_returns_only_sources_for_project_and_workspace()
+    public async Task GetAll_sources_returns_only_sources_for_project_and_workspace()
     {
         await using var db = CreateDb();
         var workspace = new Workspace { Name = "Creator workspace" };
@@ -189,8 +189,8 @@ public sealed class ResearchProjectsControllerTests
             new ResearchSource { WorkspaceId = other.Id, ResearchProjectId = otherProject.Id, Url = "https://example.com/two", Title = "Two" });
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
-        var result = await controller.GetSources(project.Id, workspace.Id, CancellationToken.None);
+        var controller = new ResearchSourcesController(db);
+        var result = await controller.GetAll(project.Id, workspace.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var sources = Assert.IsAssignableFrom<IReadOnlyList<ResearchSourceResponse>>(response.Value);
