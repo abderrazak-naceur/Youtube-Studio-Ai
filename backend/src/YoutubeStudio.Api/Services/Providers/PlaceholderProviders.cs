@@ -52,8 +52,14 @@ public sealed class PlaceholderMusicSfxProvider : IMusicSfxProvider
 
 public sealed class PlaceholderCaptionProvider : ICaptionProvider
 {
-    public Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken) =>
-        Task.FromResult(new CaptionResult("placeholder-captions"));
+    public Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken)
+    {
+        var text = request.Script.Trim();
+        var duration = Math.Max(1, text.Length / 15d);
+        return Task.FromResult(new CaptionResult(
+            "placeholder-captions",
+            [new CaptionEntry(0, duration, text)]));
+    }
 }
 
 public sealed class PlaceholderRenderProvider : IRenderProvider
