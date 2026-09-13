@@ -20,7 +20,8 @@ public sealed record MusicSfxRequest(string Title, string Script, int DurationSe
 public sealed record MusicSfxResult(string ProviderAssetId, string MediaType);
 
 public sealed record CaptionRequest(string Script);
-public sealed record CaptionResult(string ProviderAssetId);
+public sealed record CaptionEntry(double StartSeconds, double EndSeconds, string Text);
+public sealed record CaptionResult(string ProviderAssetId, IReadOnlyList<CaptionEntry> Entries);
 
 public sealed record RenderRequest(IReadOnlyList<string> AssetIds, string? MusicAssetId);
 public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);
