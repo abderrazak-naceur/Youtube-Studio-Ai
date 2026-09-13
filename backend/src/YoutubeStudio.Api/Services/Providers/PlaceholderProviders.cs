@@ -35,7 +35,7 @@ public sealed class PlaceholderScenePlanProvider : IScenePlanProvider
 public sealed class PlaceholderVoiceProvider : IVoiceProvider
 {
     public Task<VoiceResult> GenerateVoiceAsync(VoiceRequest request, CancellationToken cancellationToken) =>
-        Task.FromResult(new VoiceResult("placeholder-voice", TimeSpan.FromSeconds(Math.Max(1, request.Script.Length / 15))));
+        Task.FromResult(new VoiceResult("placeholder-voice", "audio/mpeg", TimeSpan.FromSeconds(Math.Max(1, request.Script.Length / 15))));
 }
 
 public sealed class PlaceholderVisualProvider : IVisualProvider
