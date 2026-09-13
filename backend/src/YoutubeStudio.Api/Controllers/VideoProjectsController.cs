@@ -14,7 +14,7 @@ public sealed class VideoProjectsController(
     YoutubeStudioDbContext db,
     IProductionJobService productionJobs,
     IScriptProvider scriptProvider,
-    IScenePlanProvider scenePlanProvider) : ControllerBase
+    IScenePlanProvider scenePlanProvider = null!) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<VideoProjectListItemResponse>>> List([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
