@@ -3,12 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
 using YoutubeStudio.Api.Services.Production;
+using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/video-projects")]
-public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProductionJobService productionJobs) : ControllerBase
+public sealed class VideoProjectsController(
+    YoutubeStudioDbContext db,
+    IProductionJobService productionJobs,
+    IScriptProvider scriptProvider) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<VideoProjectListItemResponse>>> List([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
@@ -50,6 +54,30 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
         return CreatedAtAction(nameof(Get), new { id = project.Id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null));
     }
 
+    [HttpPost("{id:guid}/script")]
+    public async Task<ActionResult<VideoProjectResponse>> GenerateScript(Guid id, GenerateScriptRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.ResearchSummary)) return ValidationProblem("Research summary is required to generate a script.");
+
+        var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null) return NotFound();
+
+        var result = await scriptProvider.GenerateScriptAsync(
+            new ScriptRequest(project.Prompt, request.ResearchSummary.Trim()),
+            cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(result.Title) || string.IsNullOrWhiteSpace(result.Script))
+            return Problem("The script provider returned an empty script.", statusCode: StatusCodes.Status502BadGateway);
+
+        project.Title = result.Title.Trim();
+        project.Script = result.Script.Trim();
+        project.Status = VideoProjectStatus.Scripted;
+        project.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null));
+    }
+
     [HttpPost("{id:guid}/start")]
     public async Task<ActionResult<VideoProjectResponse>> Start(Guid id, CancellationToken cancellationToken)
     {
@@ -64,6 +92,7 @@ public sealed class VideoProjectsController(YoutubeStudioDbContext db, IProducti
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
+public sealed record GenerateScriptRequest(string ResearchSummary);
 public sealed record VideoProjectListItemResponse(Guid Id, string Prompt, string Status, string? Title, DateTime UpdatedAtUtc);
 public sealed record VideoProjectResponse(Guid Id, Guid WorkspaceId, Guid? ChannelId, string Prompt, string Status, string? Title, string? Script, ProductionJobResponse? LatestJob);
 public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? LastCompletedStage, string? Error);
