@@ -11,7 +11,7 @@ public sealed record ScenePlanResult(IReadOnlyList<ScenePlanItem> Scenes);
 public sealed record ScenePlanItem(int Number, string Narration, string VisualDirection, int DurationSeconds);
 
 public sealed record VoiceRequest(string Script, string? VoiceId);
-public sealed record VoiceResult(string ProviderAssetId, TimeSpan Duration);
+public sealed record VoiceResult(string ProviderAssetId, string MediaType, TimeSpan Duration);
 
 public sealed record VisualRequest(string VisualDirection, int DurationSeconds);
 public sealed record VisualResult(string ProviderAssetId, string MediaType);
