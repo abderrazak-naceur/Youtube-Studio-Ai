@@ -11,7 +11,7 @@ public sealed record ScenePlanResult(IReadOnlyList<ScenePlanItem> Scenes);
 public sealed record ScenePlanItem(int Number, string Narration, string VisualDirection, int DurationSeconds);
 
 public sealed record VoiceRequest(string Script, string? VoiceId);
-public sealed record VoiceResult(string ProviderAssetId, TimeSpan Duration);
+public sealed record VoiceResult(string ProviderAssetId, string MediaType, TimeSpan Duration);
 
 public sealed record VisualRequest(string VisualDirection, int DurationSeconds);
 public sealed record VisualResult(string ProviderAssetId, string MediaType);
@@ -20,7 +20,8 @@ public sealed record MusicSfxRequest(string Title, string Script, int DurationSe
 public sealed record MusicSfxResult(string ProviderAssetId, string MediaType);
 
 public sealed record CaptionRequest(string Script);
-public sealed record CaptionResult(string ProviderAssetId);
+public sealed record CaptionEntry(double StartSeconds, double EndSeconds, string Text);
+public sealed record CaptionResult(string ProviderAssetId, IReadOnlyList<CaptionEntry> Entries);
 
 public sealed record RenderRequest(IReadOnlyList<string> AssetIds, string? MusicAssetId);
 public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);

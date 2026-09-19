@@ -1,10 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using YoutubeStudio.Api.Data;
 
 #nullable disable
 
 namespace YoutubeStudio.Api.Migrations;
 
+[DbContext(typeof(YoutubeStudioDbContext))]
 [Migration("20260912145000_AddResearchEvidence")]
 public partial class AddResearchEvidence : Migration
 {

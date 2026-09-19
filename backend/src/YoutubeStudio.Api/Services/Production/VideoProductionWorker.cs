@@ -69,7 +69,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
 
             var voiceResult = await voice.GenerateVoiceAsync(new VoiceRequest(scriptResult.Script, null), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Voice, voiceResult.ProviderAssetId, null,
-                JsonSerializer.Serialize(new { durationSeconds = voiceResult.Duration.TotalSeconds }), cancellationToken);
+                JsonSerializer.Serialize(new { mediaType = voiceResult.MediaType, durationSeconds = voiceResult.Duration.TotalSeconds }), cancellationToken);
 
             var visualAssetIds = new List<string>();
             foreach (var scene in planResult.Scenes)
