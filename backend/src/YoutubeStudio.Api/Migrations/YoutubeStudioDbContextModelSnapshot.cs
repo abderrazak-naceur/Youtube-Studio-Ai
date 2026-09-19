@@ -50,6 +50,10 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<Guid>("ResearchClaimId").HasColumnType("uuid"); b.Property<Guid>("ResearchEvidenceId").HasColumnType("uuid"); b.HasKey("ResearchClaimId", "ResearchEvidenceId").HasName("pk_research_claim_evidence"); b.HasIndex("ResearchEvidenceId").HasDatabaseName("ix_research_claim_evidence_evidence_id"); b.ToTable("research_claim_evidence");
         });
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchBrief", b =>
+        {
+            b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("Markdown").IsRequired().HasMaxLength(200000).HasColumnType("character varying(200000)"); b.Property<int>("PendingClaimCount").HasColumnType("integer"); b.Property<Guid>("ResearchProjectId").HasColumnType("uuid"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.HasKey("Id").HasName("pk_research_briefs"); b.HasIndex("ResearchProjectId").IsUnique().HasDatabaseName("ix_research_briefs_project_id"); b.HasIndex("WorkspaceId", "ResearchProjectId").HasDatabaseName("ix_research_briefs_workspace_id_project_id"); b.ToTable("research_briefs");
+        });
         modelBuilder.Entity("YoutubeStudio.Api.Models.VideoProject", b =>
         {
             b.Property<Guid>("Id").HasColumnType("uuid"); b.Property<Guid?>("ChannelId").HasColumnType("uuid"); b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<string>("Prompt").IsRequired().HasMaxLength(10000).HasColumnType("character varying(10000)"); b.Property<string>("Script").HasMaxLength(100000).HasColumnType("character varying(100000)"); b.Property<string>("Status").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)"); b.Property<string>("Title").HasMaxLength(500).HasColumnType("character varying(500)"); b.Property<DateTime>("UpdatedAtUtc").HasColumnType("timestamp with time zone"); b.Property<Guid>("WorkspaceId").HasColumnType("uuid"); b.HasKey("Id").HasName("PK_video_projects"); b.HasIndex("ChannelId").HasDatabaseName("IX_video_projects_ChannelId"); b.HasIndex("WorkspaceId", "Status").HasDatabaseName("IX_video_projects_WorkspaceId_Status"); b.ToTable("video_projects");
@@ -65,6 +69,7 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b => b.HasOne("YoutubeStudio.Api.Models.Workspace", "Workspace").WithMany("Channels").HasForeignKey("WorkspaceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b => b.HasOne("YoutubeStudio.Api.Models.Workspace", "Workspace").WithMany("Opportunities").HasForeignKey("WorkspaceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.HasOne("YoutubeStudio.Api.Models.Opportunity", "Opportunity").WithMany().HasForeignKey("OpportunityId").OnDelete(DeleteBehavior.Cascade).IsRequired());
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchBrief", b => b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject").WithOne("Brief").HasForeignKey("YoutubeStudio.Api.Models.ResearchBrief", "ResearchProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject").WithMany("Sources").HasForeignKey("ResearchProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => b.HasOne("YoutubeStudio.Api.Models.ResearchSource", "ResearchSource").WithMany("Evidence").HasForeignKey("ResearchSourceId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchClaim", b => b.HasOne("YoutubeStudio.Api.Models.ResearchProject", "ResearchProject").WithMany().HasForeignKey("ResearchProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
@@ -75,8 +80,8 @@ partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("YoutubeStudio.Api.Models.ProductionArtifact", b => b.HasOne("YoutubeStudio.Api.Models.VideoProject", "VideoProject").WithMany().HasForeignKey("VideoProjectId").OnDelete(DeleteBehavior.Cascade).IsRequired());
         modelBuilder.Entity("YoutubeStudio.Api.Models.Channel", b => b.Navigation("Workspace"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.Opportunity", b => b.Navigation("Workspace"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Opportunity"));
-        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => b.Navigation("Sources"));
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchProject", b => { b.Navigation("Opportunity"); b.Navigation("Sources"); b.Navigation("Brief"); });
+        modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchBrief", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("ResearchProject"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchSource", b => b.Navigation("Evidence"));
         modelBuilder.Entity("YoutubeStudio.Api.Models.ResearchEvidence", b => { b.Navigation("ResearchSource"); b.Navigation("ClaimLinks"); });

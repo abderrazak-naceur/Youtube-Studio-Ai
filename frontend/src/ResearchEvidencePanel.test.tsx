@@ -6,7 +6,7 @@ const source = { id: 'source-1', title: 'Primary source' };
 
 describe('ResearchEvidencePanel', () => {
   it('loads evidence scoped to the selected workspace and source', async () => {
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => [] }));
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => ({ ok: true, json: async () => [] }));
     vi.stubGlobal('fetch', fetchMock);
 
     render(<ResearchEvidencePanel apiBase="" workspaceId="workspace-1" researchProjectId="project-1" sources={[source]} />);

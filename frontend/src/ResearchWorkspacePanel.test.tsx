@@ -22,6 +22,9 @@ describe('ResearchWorkspacePanel', () => {
       if (url.includes('/evidence?')) {
         return Promise.resolve({ ok: true, json: async () => [] });
       }
+      if (url.includes('/brief')) {
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      }
       return Promise.resolve({ ok: true, json: async () => [{ id: 'source-1', title: 'Primary research', url: 'https://example.com/research', metadataJson: '{}' }] });
     }));
 
@@ -29,6 +32,8 @@ describe('ResearchWorkspacePanel', () => {
 
     expect(await screen.findByRole('option', { name: /AI creator workflow.*draft/i })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 3, name: 'Primary research' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /https:\/\/example\.com\/research/i })).toHaveAttribute('href', 'https://example.com/research');
+    const sourceLinks = screen.getAllByRole('link', { name: /https:\/\/example\.com\/research/i });
+    expect(sourceLinks.length).toBeGreaterThan(0);
+    for (const link of sourceLinks) expect(link).toHaveAttribute('href', 'https://example.com/research');
   });
 });
