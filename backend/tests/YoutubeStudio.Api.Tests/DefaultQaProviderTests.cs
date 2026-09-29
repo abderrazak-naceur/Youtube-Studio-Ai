@@ -67,6 +67,17 @@ public sealed class DefaultQaProviderTests
     }
 
     [Fact]
+    public async Task Confidence_is_full_on_clean_pass_and_lower_with_findings()
+    {
+        var pass = await new DefaultQaProvider().EvaluateAsync(ValidRequest(), CancellationToken.None);
+        Assert.Equal(1.0, pass.Confidence);
+
+        var withFinding = await new DefaultQaProvider().EvaluateAsync(ValidRequest() with { HasCaptions = false }, CancellationToken.None);
+        Assert.True(withFinding.Confidence < 1.0);
+        Assert.InRange(withFinding.Confidence, 0, 1);
+    }
+
+    [Fact]
     public async Task Fails_when_assets_have_unknown_rights()
     {
         var result = await new DefaultQaProvider().EvaluateAsync(

@@ -44,7 +44,7 @@ public sealed record QaRequest(
     bool HasThumbnail,
     bool HasMetadata,
     bool AllAssetsHaveKnownRights = true);
-public sealed record QaResult(bool Passed, IReadOnlyList<string> Findings);
+public sealed record QaResult(bool Passed, IReadOnlyList<string> Findings, double Confidence = 1.0);
 
 public interface IResearchProvider
 {

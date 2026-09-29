@@ -249,6 +249,10 @@ jobs:
           # Versioning: every artifact carries a positive version number.
           jq -e 'all(.[]; .version >= 1)' <<<"$artifacts_response" >/dev/null
 
+          # AI confidence: the QA artifact records a confidence value.
+          qa_content=$(jq -r '.[] | select(.type == "Qa") | .content' <<<"$artifacts_response")
+          jq -e '.Confidence != null' <<<"$qa_content" >/dev/null
+
           # Asset provenance: media assets must carry rights/provenance metadata.
           voice_metadata=$(jq -r '.[] | select(.type == "Voice") | .metadataJson' <<<"$artifacts_response")
           jq -e '.provenance.rightsStatus != null' <<<"$voice_metadata" >/dev/null

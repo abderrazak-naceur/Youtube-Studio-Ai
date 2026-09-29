@@ -156,7 +156,9 @@ public sealed class DefaultQaProvider : IQaProvider
         else if (ExceedsRepetition(words))
             findings.Add("Script fails the originality heuristic (excessive word repetition).");
 
-        return Task.FromResult(new QaResult(findings.Count == 0, findings));
+        // Confidence decreases with the number of findings; a clean pass is fully confident.
+        var confidence = Math.Round(Math.Max(0, 1.0 - 0.15 * findings.Count), 2);
+        return Task.FromResult(new QaResult(findings.Count == 0, findings, confidence));
     }
 
     private static bool ExceedsRepetition(IReadOnlyList<string> words)
