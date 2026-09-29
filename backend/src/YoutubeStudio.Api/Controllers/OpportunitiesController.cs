@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
 using YoutubeStudio.Api.Services.Auth;
+using YoutubeStudio.Api.Services.Scoring;
 
 namespace YoutubeStudio.Api.Controllers;
 
@@ -12,6 +13,28 @@ namespace YoutubeStudio.Api.Controllers;
 [Route("api/v1/opportunities")]
 public sealed class OpportunitiesController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
+    [HttpPost("score")]
+    public async Task<ActionResult<OpportunityScoreResponse>> Score(ScoreOpportunityRequest request, CancellationToken cancellationToken)
+    {
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null)
+            return Forbid();
+
+        var factors = new OpportunityFactors(
+            request.AudienceDemand, request.SearchIntent, request.TrendMomentum, request.Competition,
+            request.ChannelFit, request.MonetizationPotential, request.ProductionEffort,
+            request.OriginalityPotential, request.EvidenceQuality);
+
+        var weights = request.Weights is null
+            ? OpportunityWeights.Default
+            : new OpportunityWeights(
+                request.Weights.AudienceDemand, request.Weights.SearchIntent, request.Weights.TrendMomentum,
+                request.Weights.Competition, request.Weights.ChannelFit, request.Weights.MonetizationPotential,
+                request.Weights.ProductionEffort, request.Weights.OriginalityPotential, request.Weights.EvidenceQuality);
+
+        var result = OpportunityScoring.Score(factors, weights);
+        return Ok(new OpportunityScoreResponse(result.OpportunityScore, result.RevenueScore, result.Contributions));
+    }
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<OpportunityResponse>>> GetAll(
         [FromQuery] Guid workspaceId,
@@ -203,3 +226,32 @@ public sealed record OpportunityResponse(
     decimal RevenueScore,
     string? AudienceProblem,
     string? Rationale);
+
+public sealed record OpportunityWeightsPayload(
+    double AudienceDemand = 1.0,
+    double SearchIntent = 1.0,
+    double TrendMomentum = 0.8,
+    double Competition = 1.0,
+    double ChannelFit = 1.2,
+    double MonetizationPotential = 1.5,
+    double ProductionEffort = 0.8,
+    double OriginalityPotential = 1.0,
+    double EvidenceQuality = 1.0);
+
+public sealed record ScoreOpportunityRequest(
+    Guid WorkspaceId,
+    double AudienceDemand,
+    double SearchIntent,
+    double TrendMomentum,
+    double Competition,
+    double ChannelFit,
+    double MonetizationPotential,
+    double ProductionEffort,
+    double OriginalityPotential,
+    double EvidenceQuality,
+    OpportunityWeightsPayload? Weights = null);
+
+public sealed record OpportunityScoreResponse(
+    double OpportunityScore,
+    double RevenueScore,
+    IReadOnlyDictionary<string, double> Contributions);
