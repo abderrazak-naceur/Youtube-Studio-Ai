@@ -82,6 +82,7 @@ jobs:
             '20260929182818_AddContentGenomeAndOutcomes'
             '20260929195120_AddAuditEvents'
             '20260929200054_AddAiDisclosureFlag'
+            '20260929201202_AddUsersAndMemberships'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -91,6 +92,8 @@ jobs:
           done
 
           expected_tables=(
+            users
+            memberships
             workspaces
             video_projects
             production_jobs

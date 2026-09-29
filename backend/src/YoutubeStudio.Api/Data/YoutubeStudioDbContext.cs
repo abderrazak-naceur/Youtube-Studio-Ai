@@ -5,6 +5,8 @@ namespace YoutubeStudio.Api.Data;
 
 public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbContext> options) : DbContext(options)
 {
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<Channel> Channels => Set<Channel>();
     public DbSet<Opportunity> Opportunities => Set<Opportunity>();
@@ -25,6 +27,8 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasPostgresExtension("vector");
+        modelBuilder.Entity<User>(entity => { entity.ToTable("users"); entity.HasKey(x => x.Id).HasName("pk_users"); entity.Property(x => x.Email).HasMaxLength(320).IsRequired(); entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired(); entity.Property(x => x.DisplayName).HasMaxLength(200); entity.HasIndex(x => x.Email).IsUnique().HasDatabaseName("ix_users_email"); });
+        modelBuilder.Entity<Membership>(entity => { entity.ToTable("memberships"); entity.HasKey(x => x.Id).HasName("pk_memberships"); entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.HasOne(x => x.User).WithMany(x => x.Memberships).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); entity.HasOne(x => x.Workspace).WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.UserId, x.WorkspaceId }).IsUnique().HasDatabaseName("ix_memberships_user_id_workspace_id"); entity.HasIndex(x => x.WorkspaceId).HasDatabaseName("ix_memberships_workspace_id"); });
         modelBuilder.Entity<Workspace>(entity => { entity.ToTable("workspaces"); entity.HasKey(x => x.Id).HasName("pk_workspaces"); entity.Property(x => x.Name).HasMaxLength(200).IsRequired(); entity.HasIndex(x => x.Name).HasDatabaseName("ix_workspaces_name"); });
         modelBuilder.Entity<Channel>(entity => { entity.ToTable("channels"); entity.HasKey(x => x.Id).HasName("pk_channels"); entity.Property(x => x.Name).HasMaxLength(200).IsRequired(); entity.Property(x => x.Platform).HasMaxLength(50).IsRequired(); entity.HasOne(x => x.Workspace).WithMany(x => x.Channels).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.WorkspaceId, x.Name }).HasDatabaseName("ix_channels_workspace_id_name"); });
         modelBuilder.Entity<Opportunity>(entity => { entity.ToTable("opportunities"); entity.HasKey(x => x.Id).HasName("pk_opportunities"); entity.Property(x => x.Title).HasMaxLength(500).IsRequired(); entity.Property(x => x.Status).HasMaxLength(50).IsRequired(); entity.Property(x => x.OpportunityScore).HasPrecision(5, 2); entity.Property(x => x.RevenueScore).HasPrecision(5, 2); entity.HasOne(x => x.Workspace).WithMany(x => x.Opportunities).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.WorkspaceId, x.Status }).HasDatabaseName("ix_opportunities_workspace_id_status"); });
