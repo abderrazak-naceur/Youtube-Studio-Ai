@@ -124,7 +124,16 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 (decimal)renderResult.Duration.TotalSeconds, CostRates.RenderPerSecondUsd, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Qa, cancellationToken);
 
-            var qaResult = await qa.EvaluateAsync(new QaRequest(scriptResult.Title, scriptResult.Script, renderResult.ProviderAssetId), cancellationToken);
+            var qaResult = await qa.EvaluateAsync(new QaRequest(
+                scriptResult.Title,
+                scriptResult.Script,
+                renderResult.ProviderAssetId,
+                planResult.Scenes.Count,
+                voiceResult.Duration.TotalSeconds,
+                renderResult.Duration.TotalSeconds,
+                HasCaptions: !string.IsNullOrWhiteSpace(captionResult.ProviderAssetId),
+                HasThumbnail: primaryThumbnail is not null,
+                HasMetadata: !string.IsNullOrWhiteSpace(metadataResult.Title)), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa, "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
             if (!qaResult.Passed) throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
 

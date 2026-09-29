@@ -33,7 +33,16 @@ public sealed record MetadataResult(string Title, string Description, IReadOnlyL
 public sealed record RenderRequest(IReadOnlyList<string> AssetIds, string? MusicAssetId);
 public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);
 
-public sealed record QaRequest(string Title, string Script, string? RenderAssetId);
+public sealed record QaRequest(
+    string Title,
+    string Script,
+    string? RenderAssetId,
+    int SceneCount,
+    double VoiceDurationSeconds,
+    double RenderDurationSeconds,
+    bool HasCaptions,
+    bool HasThumbnail,
+    bool HasMetadata);
 public sealed record QaResult(bool Passed, IReadOnlyList<string> Findings);
 
 public interface IResearchProvider

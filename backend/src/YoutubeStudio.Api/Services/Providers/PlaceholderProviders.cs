@@ -109,8 +109,61 @@ public sealed class PlaceholderRenderProvider : IRenderProvider
         Task.FromResult(new RenderResult("placeholder-render", TimeSpan.FromSeconds(28)));
 }
 
-public sealed class PlaceholderQaProvider : IQaProvider
+/// <summary>
+/// Default QA provider that runs real technical and editorial checks instead of always
+/// passing. Covers the automated gates from QA-AGENT and VIDEO-PRODUCTION-PIPELINE that
+/// are computable without decoding media: presence of a render, expected artifacts,
+/// script/scene coherence, duration sanity and an originality (repetition) heuristic.
+/// A blocking failure returns Passed=false with findings.
+/// </summary>
+public sealed class DefaultQaProvider : IQaProvider
 {
-    public Task<QaResult> EvaluateAsync(QaRequest request, CancellationToken cancellationToken) =>
-        Task.FromResult(new QaResult(true, Array.Empty<string>()));
+    // Maximum share a single repeated word may occupy before the script looks templated.
+    private const double MaxWordRepetitionRatio = 0.35;
+
+    public Task<QaResult> EvaluateAsync(QaRequest request, CancellationToken cancellationToken)
+    {
+        var findings = new List<string>();
+
+        // Technical gates.
+        if (string.IsNullOrWhiteSpace(request.RenderAssetId))
+            findings.Add("Missing rendered video asset.");
+        if (request.RenderDurationSeconds <= 0)
+            findings.Add("Rendered video has no positive duration.");
+        if (request.VoiceDurationSeconds <= 0)
+            findings.Add("Narration has no positive duration.");
+        if (!request.HasCaptions)
+            findings.Add("Captions are missing.");
+
+        // Editorial gates.
+        if (string.IsNullOrWhiteSpace(request.Title))
+            findings.Add("Video title is missing.");
+        if (request.SceneCount <= 0)
+            findings.Add("Scene plan has no scenes.");
+        if (!request.HasThumbnail)
+            findings.Add("Thumbnail is missing.");
+        if (!request.HasMetadata)
+            findings.Add("Publish metadata is missing.");
+
+        var words = (request.Script ?? string.Empty)
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length < 20)
+            findings.Add("Script is too short to be a coherent narrative.");
+        else if (ExceedsRepetition(words))
+            findings.Add("Script fails the originality heuristic (excessive word repetition).");
+
+        return Task.FromResult(new QaResult(findings.Count == 0, findings));
+    }
+
+    private static bool ExceedsRepetition(IReadOnlyList<string> words)
+    {
+        var normalized = words
+            .Select(word => new string(word.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant())
+            .Where(word => word.Length >= 4)
+            .ToList();
+        if (normalized.Count == 0) return false;
+
+        var topCount = normalized.GroupBy(word => word).Max(group => group.Count());
+        return topCount / (double)normalized.Count > MaxWordRepetitionRatio;
+    }
 }

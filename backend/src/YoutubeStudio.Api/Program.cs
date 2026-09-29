@@ -29,7 +29,7 @@ builder.Services.AddScoped<ICaptionProvider, PlaceholderCaptionProvider>();
 builder.Services.AddScoped<IThumbnailProvider, PlaceholderThumbnailProvider>();
 builder.Services.AddScoped<IMetadataProvider, PlaceholderMetadataProvider>();
 builder.Services.AddScoped<IRenderProvider, PlaceholderRenderProvider>();
-builder.Services.AddScoped<IQaProvider, PlaceholderQaProvider>();
+builder.Services.AddScoped<IQaProvider, DefaultQaProvider>();
 
 builder.Services.AddHealthChecks()
     .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!);
