@@ -36,12 +36,13 @@ describe('ApprovalPanel', () => {
     render(<ApprovalPanel apiBase="http://api.test" videoProjectId="project-1" onDecided={onDecided} />);
 
     fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Alex' } });
+    fireEvent.click(screen.getByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: /Approve & export/i }));
 
     await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) =>
       String(url) === 'http://api.test/api/v1/video-projects/project-1/approve' &&
       options?.method === 'POST' &&
-      options?.body === JSON.stringify({ reviewer: 'Alex', notes: null })
+      options?.body === JSON.stringify({ reviewer: 'Alex', notes: null, aiDisclosureAcknowledged: true })
     )).toBe(true));
     await waitFor(() => expect(onDecided).toHaveBeenCalledWith('Completed'));
   });
@@ -59,6 +60,23 @@ describe('ApprovalPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /Approve & export/i }));
 
     expect(await screen.findByText('Enter a reviewer name before deciding.')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/approve'))).toBe(false);
+  });
+
+  it('requires the AI disclosure to be acknowledged before approving', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/costs')) return Promise.resolve({ ok: true, json: async () => ({ totalCostUsd: 0, byStage: [] }) });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ApprovalPanel apiBase="http://api.test" videoProjectId="project-1" />);
+
+    fireEvent.change(screen.getByPlaceholderText('Your name'), { target: { value: 'Alex' } });
+    fireEvent.click(screen.getByRole('button', { name: /Approve & export/i }));
+
+    expect(await screen.findByText('Acknowledge the AI disclosure before approving.')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/approve'))).toBe(false);
   });
 

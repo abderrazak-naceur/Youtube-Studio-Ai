@@ -13,6 +13,7 @@ type Props = {
 export function ApprovalPanel({ apiBase, videoProjectId, onDecided }: Props) {
   const [reviewer, setReviewer] = useState('');
   const [notes, setNotes] = useState('');
+  const [disclosureAck, setDisclosureAck] = useState(false);
   const [costs, setCosts] = useState<CostSummary | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -37,13 +38,14 @@ export function ApprovalPanel({ apiBase, videoProjectId, onDecided }: Props) {
     const trimmedReviewer = reviewer.trim();
     if (!trimmedReviewer) return setError('Enter a reviewer name before deciding.');
     if (decision === 'reject' && !notes.trim()) return setError('Rejection notes are required.');
+    if (decision === 'approve' && !disclosureAck) return setError('Acknowledge the AI disclosure before approving.');
     setBusy(true);
     setError('');
     try {
       const response = await fetch(`${apiBase}/api/v1/video-projects/${videoProjectId}/${decision}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewer: trimmedReviewer, notes: notes.trim() || null })
+        body: JSON.stringify({ reviewer: trimmedReviewer, notes: notes.trim() || null, aiDisclosureAcknowledged: disclosureAck })
       });
       if (!response.ok) throw new Error(await response.text());
       const payload = await response.json() as { status: string };
@@ -65,6 +67,8 @@ export function ApprovalPanel({ apiBase, videoProjectId, onDecided }: Props) {
       <label className="text-xs text-zinc-500">Reviewer<input value={reviewer} onChange={e => setReviewer(e.target.value)} placeholder="Your name" className="mt-1 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-zinc-600" /></label>
       <label className="text-xs text-zinc-500">Notes <span className="text-zinc-700">(required to reject)</span><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Optional approval notes or a required rejection reason..." className="mt-1 w-full resize-none rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 outline-none focus:border-zinc-600" /></label>
     </div>
+
+    <label className="mt-3 flex items-start gap-2 text-xs text-zinc-400"><input type="checkbox" checked={disclosureAck} onChange={e => setDisclosureAck(e.target.checked)} className="mt-0.5" /><span>This video contains AI-generated content. I acknowledge the required AI disclosure.</span></label>
 
     {error && <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/20 px-3 py-2 text-xs text-red-300">{error}</p>}
 
