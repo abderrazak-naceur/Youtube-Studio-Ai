@@ -25,6 +25,7 @@ jobs:
           --health-retries 10
     env:
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=youtube_studio_ai;Username=postgres;Password=postgres
+      Jwt__SigningKey: ci-signing-key-that-is-sufficiently-long-for-hmac-sha256
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
