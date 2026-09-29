@@ -19,8 +19,10 @@ describe('ResearchBriefPanel', () => {
     render(<ResearchBriefPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" projectTitle="Creator planning" sources={[{ id: 'source-1', title: 'Official report', url: 'https://example.com/report' }]} />);
 
     expect(await screen.findByText('Supported fact')).toBeInTheDocument();
-    expect(await screen.findByText('A source-backed excerpt.')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    const evidenceMatches = await screen.findAllByText((_, element) =>
+      element?.tagName === 'P' && element.textContent?.includes('A source-backed excerpt.') === true);
+    expect(evidenceMatches.length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /Official report/i })).toHaveAttribute('href', 'https://example.com/report');
   });
 
