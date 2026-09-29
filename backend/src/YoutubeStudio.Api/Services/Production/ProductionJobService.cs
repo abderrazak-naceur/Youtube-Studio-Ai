@@ -6,13 +6,27 @@ namespace YoutubeStudio.Api.Services.Production;
 
 public interface IProductionJobService
 {
-    Task<ProductionJob> EnqueueAsync(VideoProject project, CancellationToken cancellationToken);
+    Task<ProductionJob> EnqueueAsync(VideoProject project, string? idempotencyKey = null, CancellationToken cancellationToken = default);
 }
 
 public sealed class ProductionJobService(YoutubeStudioDbContext db) : IProductionJobService
 {
-    public async Task<ProductionJob> EnqueueAsync(VideoProject project, CancellationToken cancellationToken)
+    public async Task<ProductionJob> EnqueueAsync(VideoProject project, string? idempotencyKey = null, CancellationToken cancellationToken = default)
     {
+        var key = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+
+        // Idempotency: a retried enqueue with the same key returns the existing job.
+        if (key is not null)
+        {
+            var byKey = await db.ProductionJobs
+                .Where(x => x.VideoProjectId == project.Id && x.IdempotencyKey == key)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (byKey is not null)
+                return byKey;
+        }
+
+        // Never run two active jobs for the same project.
         var existing = await db.ProductionJobs
             .Where(x => x.VideoProjectId == project.Id &&
                         (x.Status == ProductionJobStatus.Queued || x.Status == ProductionJobStatus.Running))
@@ -25,7 +39,8 @@ public sealed class ProductionJobService(YoutubeStudioDbContext db) : IProductio
         var job = new ProductionJob
         {
             VideoProjectId = project.Id,
-            Status = ProductionJobStatus.Queued
+            Status = ProductionJobStatus.Queued,
+            IdempotencyKey = key
         };
 
         db.ProductionJobs.Add(job);

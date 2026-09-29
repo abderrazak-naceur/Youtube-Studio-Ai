@@ -133,8 +133,36 @@ public sealed class VideoProjectsController(
         if (project.Status is not VideoProjectStatus.Draft and not VideoProjectStatus.Failed) return Conflict("The video project is already running or completed.");
         project.Status = VideoProjectStatus.Researching;
         project.UpdatedAtUtc = DateTime.UtcNow;
-        var job = await productionJobs.EnqueueAsync(project, cancellationToken);
+        var idempotencyKey = Request.Headers.TryGetValue("Idempotency-Key", out var key) ? key.ToString() : null;
+        var job = await productionJobs.EnqueueAsync(project, idempotencyKey, cancellationToken);
         return AcceptedAtAction(nameof(Get), new { id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, new ProductionJobResponse(job.Id, job.Status.ToString(), job.Attempt, job.LastCompletedStage, job.Error)));
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<ActionResult<VideoProjectResponse>> Cancel(Guid id, CancellationToken cancellationToken)
+    {
+        var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (project is null) return NotFound();
+        if (!await CanAccessProjectAsync(project, cancellationToken)) return NotFound();
+
+        var activeJob = await db.ProductionJobs
+            .Where(x => x.VideoProjectId == id &&
+                        (x.Status == ProductionJobStatus.Queued || x.Status == ProductionJobStatus.Running))
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (activeJob is null)
+            return Conflict("There is no active production job to cancel for this project.");
+
+        activeJob.Status = ProductionJobStatus.Cancelled;
+        activeJob.Error = "Cancelled by user.";
+        activeJob.UpdatedAtUtc = DateTime.UtcNow;
+        project.Status = VideoProjectStatus.Cancelled;
+        project.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script,
+            new ProductionJobResponse(activeJob.Id, activeJob.Status.ToString(), activeJob.Attempt, activeJob.LastCompletedStage, activeJob.Error)));
     }
 
     private static bool HasValidScenePlan(ScenePlanResult result) =>

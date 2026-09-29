@@ -12,6 +12,7 @@ public enum VideoProjectStatus
     AwaitingApproval,
     Completed,
     Rejected,
+    Cancelled,
     Failed
 }
 

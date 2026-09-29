@@ -273,6 +273,45 @@ public sealed class VideoProjectsControllerTests
         Assert.Equal(1, await db.ProductionJobs.CountAsync(x => x.VideoProjectId == project.Id));
     }
 
+    [Fact]
+    public async Task Cancel_marks_active_job_and_project_cancelled()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+        var project = new VideoProject { WorkspaceId = workspace.Id, Prompt = "AI video", Status = VideoProjectStatus.Draft };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(db);
+        await controller.Start(project.Id, CancellationToken.None);
+
+        var result = await controller.Cancel(project.Id, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<VideoProjectResponse>(ok.Value);
+        Assert.Equal(nameof(VideoProjectStatus.Cancelled), response.Status);
+        Assert.Equal(VideoProjectStatus.Cancelled, (await db.VideoProjects.SingleAsync(x => x.Id == project.Id)).Status);
+        Assert.Equal(ProductionJobStatus.Cancelled, (await db.ProductionJobs.SingleAsync(x => x.VideoProjectId == project.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Cancel_returns_conflict_when_no_active_job()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Test workspace" };
+        db.Workspaces.Add(workspace);
+        await db.SaveChangesAsync();
+        var project = new VideoProject { WorkspaceId = workspace.Id, Prompt = "AI video", Status = VideoProjectStatus.Draft };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync();
+
+        var result = await CreateController(db).Cancel(project.Id, CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+    }
+
     private static VideoProjectsController CreateController(YoutubeStudioDbContext db) =>
         new VideoProjectsController(db, new ProductionJobService(db), new PlaceholderScriptProvider(), new StubWorkspaceAccess()).WithUser();
 

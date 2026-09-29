@@ -84,6 +84,7 @@ jobs:
             '20260929195120_AddAuditEvents'
             '20260929200054_AddAiDisclosureFlag'
             '20260929201202_AddUsersAndMemberships'
+            '20260929205426_AddJobIdempotencyKey'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
