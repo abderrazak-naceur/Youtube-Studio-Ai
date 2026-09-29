@@ -24,6 +24,7 @@ builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 builder.Services.AddSingleton<IModelRouter, ModelRouter>();
+builder.Services.AddScoped<IProviderUsageLedger, ProviderUsageLedger>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
 // Authentication / authorization.
