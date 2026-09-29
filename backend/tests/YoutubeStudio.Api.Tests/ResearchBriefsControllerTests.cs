@@ -20,7 +20,7 @@ public sealed class ResearchBriefsControllerTests
         db.ResearchClaims.Add(claim);
         db.ResearchClaimEvidence.Add(new ResearchClaimEvidence { ResearchClaimId = claim.Id, ResearchEvidenceId = evidence.Id });
         await db.SaveChangesAsync();
-        var controller = new ResearchBriefsController(db);
+        var controller = new ResearchBriefsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Save(project.Id, new SaveResearchBriefRequest(workspace.Id), CancellationToken.None);
 
@@ -45,7 +45,7 @@ public sealed class ResearchBriefsControllerTests
         db.ResearchClaims.AddRange(verified, pending);
         db.ResearchClaimEvidence.Add(new ResearchClaimEvidence { ResearchClaimId = verified.Id, ResearchEvidenceId = evidence.Id });
         await db.SaveChangesAsync();
-        var controller = new ResearchBriefsController(db);
+        var controller = new ResearchBriefsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Save(project.Id, new SaveResearchBriefRequest(workspace.Id), CancellationToken.None);
 
@@ -63,7 +63,7 @@ public sealed class ResearchBriefsControllerTests
         var (workspace, project, _) = await AddResearchAsync(db);
         db.ResearchClaims.Add(new ResearchClaim { WorkspaceId = workspace.Id, ResearchProjectId = project.Id, Text = "Unverified", VerificationStatus = "unverified" });
         await db.SaveChangesAsync();
-        var controller = new ResearchBriefsController(db);
+        var controller = new ResearchBriefsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Save(project.Id, new SaveResearchBriefRequest(workspace.Id), CancellationToken.None);
 
@@ -81,7 +81,7 @@ public sealed class ResearchBriefsControllerTests
         db.ResearchClaims.Add(claim);
         db.ResearchClaimEvidence.Add(new ResearchClaimEvidence { ResearchClaimId = claim.Id, ResearchEvidenceId = evidence.Id });
         await db.SaveChangesAsync();
-        var controller = new ResearchBriefsController(db);
+        var controller = new ResearchBriefsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Save(project.Id, new SaveResearchBriefRequest(Guid.NewGuid()), CancellationToken.None);
 
@@ -98,7 +98,7 @@ public sealed class ResearchBriefsControllerTests
         db.ResearchClaims.Add(claim);
         db.ResearchClaimEvidence.Add(new ResearchClaimEvidence { ResearchClaimId = claim.Id, ResearchEvidenceId = evidence.Id });
         await db.SaveChangesAsync();
-        var controller = new ResearchBriefsController(db);
+        var controller = new ResearchBriefsController(db, new StubWorkspaceAccess()).WithUser();
         await controller.Save(project.Id, new SaveResearchBriefRequest(workspace.Id), CancellationToken.None);
 
         var result = await controller.Get(project.Id, workspace.Id, CancellationToken.None);

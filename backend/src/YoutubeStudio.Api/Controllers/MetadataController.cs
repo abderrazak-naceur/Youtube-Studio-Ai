@@ -1,8 +1,10 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
@@ -12,10 +14,12 @@ namespace YoutubeStudio.Api.Controllers;
 /// video project. Metadata is a mandatory MVP artifact (PRODUCT-REQUIREMENTS P0).
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects")]
 public sealed class MetadataController(
     YoutubeStudioDbContext db,
-    IMetadataProvider metadataProvider) : ControllerBase
+    IMetadataProvider metadataProvider,
+    IWorkspaceAccess access) : ControllerBase
 {
     [HttpPost("{id:guid}/metadata")]
     public async Task<ActionResult<MetadataGenerationResponse>> GenerateMetadata(
@@ -24,6 +28,7 @@ public sealed class MetadataController(
     {
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
         if (project.Status != VideoProjectStatus.Producing)
             return Conflict("The video project must be producing before generating metadata.");
 

@@ -1,14 +1,17 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/research-projects/{researchProjectId:guid}/claims")]
-public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ResearchClaimsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     private static readonly HashSet<string> VerificationStatuses = ["unverified", "verified", "disputed"];
 
@@ -77,6 +80,7 @@ public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : Contro
         CancellationToken cancellationToken)
     {
         if (!VerificationStatuses.Contains(request.VerificationStatus)) return BadRequest("Verification status must be unverified, verified or disputed.");
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null) return Forbid();
         var claim = await db.ResearchClaims.SingleOrDefaultAsync(x => x.Id == id && x.ResearchProjectId == researchProjectId && x.WorkspaceId == request.WorkspaceId, cancellationToken);
         if (claim is null) return NotFound("Research claim does not exist in the specified workspace and project.");
         claim.VerificationStatus = request.VerificationStatus;
@@ -98,7 +102,9 @@ public sealed class ResearchClaimsController(YoutubeStudioDbContext db) : Contro
         }
     }
 
-    private Task<bool> ProjectExistsAsync(Guid projectId, Guid workspaceId, CancellationToken cancellationToken) => db.ResearchProjects.AnyAsync(x => x.Id == projectId && x.WorkspaceId == workspaceId, cancellationToken);
+    private async Task<bool> ProjectExistsAsync(Guid projectId, Guid workspaceId, CancellationToken cancellationToken) =>
+        await access.GetRoleAsync(User, workspaceId, cancellationToken) is not null &&
+        await db.ResearchProjects.AnyAsync(x => x.Id == projectId && x.WorkspaceId == workspaceId, cancellationToken);
 
     private async Task<ResearchClaimResponse> ToResponseAsync(Guid id, CancellationToken cancellationToken)
     {

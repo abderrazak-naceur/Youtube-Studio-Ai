@@ -1,21 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects/{videoProjectId:guid}/pipeline")]
-public sealed class VideoPipelineController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class VideoPipelineController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<VideoPipelineResponse>> Get(Guid videoProjectId, CancellationToken cancellationToken)
     {
         var project = await db.VideoProjects.AsNoTracking()
             .Where(x => x.Id == videoProjectId)
-            .Select(x => new { x.Id, Status = x.Status.ToString(), x.Title, x.UpdatedAtUtc })
+            .Select(x => new { x.Id, Status = x.Status.ToString(), x.Title, x.UpdatedAtUtc, x.WorkspaceId })
             .SingleOrDefaultAsync(cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
 
         var artifacts = await db.ProductionArtifacts.AsNoTracking()
             .Where(x => x.VideoProjectId == videoProjectId)

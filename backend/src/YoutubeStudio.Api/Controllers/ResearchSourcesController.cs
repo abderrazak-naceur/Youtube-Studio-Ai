@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/research-projects/{researchProjectId:guid}/sources")]
-public sealed class ResearchSourcesController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ResearchSourcesController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ResearchSourceResponse>>> GetAll(
@@ -70,6 +73,7 @@ public sealed class ResearchSourcesController(YoutubeStudioDbContext db) : Contr
         UpdateResearchSourceRequest request,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null) return Forbid();
         var source = await db.ResearchSources.SingleOrDefaultAsync(
             x => x.Id == id && x.ResearchProjectId == researchProjectId && x.WorkspaceId == request.WorkspaceId,
             cancellationToken);
@@ -96,6 +100,7 @@ public sealed class ResearchSourcesController(YoutubeStudioDbContext db) : Contr
         [FromQuery] Guid workspaceId,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null) return Forbid();
         var source = await db.ResearchSources.SingleOrDefaultAsync(
             x => x.Id == id && x.ResearchProjectId == researchProjectId && x.WorkspaceId == workspaceId,
             cancellationToken);
@@ -108,8 +113,9 @@ public sealed class ResearchSourcesController(YoutubeStudioDbContext db) : Contr
         return NoContent();
     }
 
-    private Task<bool> ProjectExistsAsync(Guid researchProjectId, Guid workspaceId, CancellationToken cancellationToken) =>
-        db.ResearchProjects.AnyAsync(x => x.Id == researchProjectId && x.WorkspaceId == workspaceId, cancellationToken);
+    private async Task<bool> ProjectExistsAsync(Guid researchProjectId, Guid workspaceId, CancellationToken cancellationToken) =>
+        await access.GetRoleAsync(User, workspaceId, cancellationToken) is not null &&
+        await db.ResearchProjects.AnyAsync(x => x.Id == researchProjectId && x.WorkspaceId == workspaceId, cancellationToken);
 
     private static bool TryValidate(string url, string title, string? metadataJson, out string error)
     {

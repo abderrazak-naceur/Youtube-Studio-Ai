@@ -17,7 +17,7 @@ public sealed class ResearchSourcesControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project) = await AddProjectAsync(db);
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id,
             new CreateResearchSourceRequest(workspace.Id, "https://example.com/research", "Primary research", "{\"author\":\"Team\"}"),
@@ -36,7 +36,7 @@ public sealed class ResearchSourcesControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project) = await AddProjectAsync(db);
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
 
         var invalidUrl = await controller.Create(project.Id,
             new CreateResearchSourceRequest(workspace.Id, "not-a-url", "Source"), CancellationToken.None);
@@ -70,7 +70,7 @@ public sealed class ResearchSourcesControllerTests
         };
         db.ResearchSources.AddRange(source, otherSource);
         await db.SaveChangesAsync();
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
 
         var listed = await controller.GetAll(project.Id, workspace.Id, CancellationToken.None);
         var updateOutsideWorkspace = await controller.Update(project.Id, source.Id,
@@ -101,7 +101,7 @@ public sealed class ResearchSourcesControllerTests
         };
         db.ResearchSources.Add(source);
         await db.SaveChangesAsync();
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
 
         var wrongWorkspace = await controller.Delete(project.Id, source.Id, Guid.NewGuid(), CancellationToken.None);
         var deleted = await controller.Delete(project.Id, source.Id, workspace.Id, CancellationToken.None);

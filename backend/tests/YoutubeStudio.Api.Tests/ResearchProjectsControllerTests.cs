@@ -22,7 +22,7 @@ public sealed class ResearchProjectsControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
+        var controller = new ResearchProjectsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateResearchProjectRequest(workspace.Id, opportunity.Id),
             CancellationToken.None);
@@ -46,7 +46,7 @@ public sealed class ResearchProjectsControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
+        var controller = new ResearchProjectsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateResearchProjectRequest(other.Id, opportunity.Id),
             CancellationToken.None);
@@ -66,7 +66,7 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(new ResearchProject { WorkspaceId = workspace.Id, OpportunityId = opportunity.Id });
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
+        var controller = new ResearchProjectsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateResearchProjectRequest(workspace.Id, opportunity.Id),
             CancellationToken.None);
@@ -89,7 +89,7 @@ public sealed class ResearchProjectsControllerTests
             new ResearchProject { WorkspaceId = other.Id, OpportunityId = secondOpportunity.Id });
         await db.SaveChangesAsync();
 
-        var controller = new ResearchProjectsController(db);
+        var controller = new ResearchProjectsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GetAll(workspace.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
@@ -110,7 +110,7 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             project.Id,
             new CreateResearchSourceRequest(workspace.Id, "https://example.com/article", "Example article", "{\"author\":\"Test\"}"),
@@ -139,7 +139,7 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             project.Id,
             new CreateResearchSourceRequest(other.Id, "https://example.com/private", "Private", null),
@@ -161,7 +161,7 @@ public sealed class ResearchProjectsControllerTests
         db.ResearchProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             project.Id,
             new CreateResearchSourceRequest(workspace.Id, "ftp://example.com/article", "Example", null),
@@ -189,7 +189,7 @@ public sealed class ResearchProjectsControllerTests
             new ResearchSource { WorkspaceId = other.Id, ResearchProjectId = otherProject.Id, Url = "https://example.com/two", Title = "Two" });
         await db.SaveChangesAsync();
 
-        var controller = new ResearchSourcesController(db);
+        var controller = new ResearchSourcesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GetAll(project.Id, workspace.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);

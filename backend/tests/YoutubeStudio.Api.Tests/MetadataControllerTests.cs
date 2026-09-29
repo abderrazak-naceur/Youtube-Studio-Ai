@@ -119,7 +119,7 @@ public sealed class MetadataControllerTests
         return project;
     }
 
-    private static MetadataController CreateController(YoutubeStudioDbContext db, IMetadataProvider provider) => new(db, provider);
+    private static MetadataController CreateController(YoutubeStudioDbContext db, IMetadataProvider provider) => new MetadataController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

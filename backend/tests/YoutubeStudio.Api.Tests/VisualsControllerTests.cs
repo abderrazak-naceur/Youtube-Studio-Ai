@@ -144,7 +144,7 @@ public sealed class VisualsControllerTests
     }
 
     private static VisualsController CreateController(YoutubeStudioDbContext db, IVisualProvider provider) =>
-        new(db, provider);
+        new VisualsController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

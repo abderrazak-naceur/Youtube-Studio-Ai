@@ -1,14 +1,17 @@
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/research-projects/{researchProjectId:guid}/brief")]
-public sealed class ResearchBriefsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ResearchBriefsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ResearchBriefResponse>> Get(
@@ -72,8 +75,9 @@ public sealed class ResearchBriefsController(YoutubeStudioDbContext db) : Contro
         return CreatedAtAction(nameof(Get), new { researchProjectId, workspaceId = brief.WorkspaceId }, ToResponse(brief));
     }
 
-    private Task<bool> ProjectExistsAsync(Guid projectId, Guid workspaceId, CancellationToken cancellationToken) =>
-        db.ResearchProjects.AnyAsync(x => x.Id == projectId && x.WorkspaceId == workspaceId, cancellationToken);
+    private async Task<bool> ProjectExistsAsync(Guid projectId, Guid workspaceId, CancellationToken cancellationToken) =>
+        await access.GetRoleAsync(User, workspaceId, cancellationToken) is not null &&
+        await db.ResearchProjects.AnyAsync(x => x.Id == projectId && x.WorkspaceId == workspaceId, cancellationToken);
 
     private static ResearchBriefResponse ToResponse(ResearchBrief brief) =>
         new(brief.Id, brief.WorkspaceId, brief.ResearchProjectId, brief.Markdown, brief.Status, brief.PendingClaimCount, brief.CreatedAtUtc, brief.UpdatedAtUtc);

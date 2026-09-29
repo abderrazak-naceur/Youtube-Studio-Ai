@@ -55,7 +55,7 @@ public sealed class VideoPipelineControllerTests
         });
         await db.SaveChangesAsync();
 
-        var controller = new VideoPipelineController(db);
+        var controller = new VideoPipelineController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Get(project.Id, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
@@ -77,7 +77,7 @@ public sealed class VideoPipelineControllerTests
     public async Task Get_returns_not_found_for_unknown_project()
     {
         await using var db = CreateDb();
-        var controller = new VideoPipelineController(db);
+        var controller = new VideoPipelineController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Get(Guid.NewGuid(), CancellationToken.None);
 

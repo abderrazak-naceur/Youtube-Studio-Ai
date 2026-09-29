@@ -1,17 +1,21 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/research-projects")]
-public sealed class ResearchProjectsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ResearchProjectsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ResearchProjectResponse>>> GetAll([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null) return Forbid();
         if (!await db.Workspaces.AnyAsync(x => x.Id == workspaceId, cancellationToken)) return BadRequest("Workspace does not exist.");
         var projects = await db.ResearchProjects.AsNoTracking().Where(x => x.WorkspaceId == workspaceId).OrderByDescending(x => x.CreatedAtUtc).Select(x => new ResearchProjectResponse(x.Id, x.WorkspaceId, x.OpportunityId, x.Status)).ToListAsync(cancellationToken);
         return Ok(projects);
@@ -20,6 +24,7 @@ public sealed class ResearchProjectsController(YoutubeStudioDbContext db) : Cont
     [HttpPost]
     public async Task<ActionResult<ResearchProjectResponse>> Create(CreateResearchProjectRequest request, CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null) return Forbid();
         var opportunity = await db.Opportunities.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.OpportunityId && x.WorkspaceId == request.WorkspaceId, cancellationToken);
         if (opportunity is null) return NotFound("Opportunity does not exist in the specified workspace.");
         if (await db.ResearchProjects.AsNoTracking().AnyAsync(x => x.OpportunityId == request.OpportunityId, cancellationToken)) return Conflict("A research project already exists for this opportunity.");

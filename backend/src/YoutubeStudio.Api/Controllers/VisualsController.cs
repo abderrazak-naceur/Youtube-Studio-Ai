@@ -1,17 +1,21 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects")]
 public sealed class VisualsController(
     YoutubeStudioDbContext db,
-    IVisualProvider visualProvider) : ControllerBase
+    IVisualProvider visualProvider,
+    IWorkspaceAccess access) : ControllerBase
 {
     [HttpPost("{id:guid}/visuals")]
     public async Task<ActionResult<VisualGenerationResponse>> GenerateVisuals(
@@ -20,6 +24,7 @@ public sealed class VisualsController(
     {
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
         if (project.Status != VideoProjectStatus.Planned)
             return Conflict("The video project must be planned before generating visuals.");
 

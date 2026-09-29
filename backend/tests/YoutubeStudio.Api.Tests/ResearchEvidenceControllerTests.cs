@@ -17,7 +17,7 @@ public sealed class ResearchEvidenceControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, source) = await AddSourceAsync(db);
-        var controller = new ResearchEvidenceController(db);
+        var controller = new ResearchEvidenceController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id, source.Id,
             new CreateResearchEvidenceRequest(workspace.Id, source.Id, "A precise factual quote", "p. 12", "Surrounding context"), CancellationToken.None);
@@ -40,7 +40,7 @@ public sealed class ResearchEvidenceControllerTests
             new ResearchEvidence { WorkspaceId = workspace.Id, ResearchSourceId = source.Id, Quote = "Visible" },
             new ResearchEvidence { WorkspaceId = otherWorkspace.Id, ResearchSourceId = otherSource.Id, Quote = "Private" });
         await db.SaveChangesAsync();
-        var controller = new ResearchEvidenceController(db);
+        var controller = new ResearchEvidenceController(db, new StubWorkspaceAccess()).WithUser();
 
         var listed = await controller.GetAll(project.Id, source.Id, workspace.Id, CancellationToken.None);
         var wrongWorkspace = await controller.GetAll(project.Id, source.Id, otherWorkspace.Id, CancellationToken.None);
@@ -59,7 +59,7 @@ public sealed class ResearchEvidenceControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, source) = await AddSourceAsync(db);
-        var controller = new ResearchEvidenceController(db);
+        var controller = new ResearchEvidenceController(db, new StubWorkspaceAccess()).WithUser();
 
         var empty = await controller.Create(project.Id, source.Id,
             new CreateResearchEvidenceRequest(workspace.Id, source.Id, " "), CancellationToken.None);

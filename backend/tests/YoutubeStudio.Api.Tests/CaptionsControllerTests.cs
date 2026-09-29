@@ -218,7 +218,7 @@ public sealed class CaptionsControllerTests
         });
     }
 
-    private static CaptionsController CreateController(YoutubeStudioDbContext db, ICaptionProvider provider) => new(db, provider);
+    private static CaptionsController CreateController(YoutubeStudioDbContext db, ICaptionProvider provider) => new CaptionsController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

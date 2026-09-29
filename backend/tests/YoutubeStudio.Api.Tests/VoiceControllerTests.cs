@@ -123,7 +123,7 @@ public sealed class VoiceControllerTests
     }
 
     private static VoiceController CreateController(YoutubeStudioDbContext db, IVoiceProvider provider) =>
-        new(db, provider);
+        new VoiceController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

@@ -1,17 +1,21 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/research-projects/{researchProjectId:guid}/sources/{sourceId:guid}/evidence")]
-public sealed class ResearchEvidenceController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ResearchEvidenceController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ResearchEvidenceResponse>>> GetAll(Guid researchProjectId, Guid sourceId, [FromQuery] Guid workspaceId, CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null) return Forbid();
         if (!await db.ResearchSources.AnyAsync(x => x.Id == sourceId && x.ResearchProjectId == researchProjectId && x.WorkspaceId == workspaceId, cancellationToken))
             return NotFound("Research source does not exist in the specified workspace and project.");
         var evidence = await db.ResearchEvidence.AsNoTracking().Where(x => x.ResearchSourceId == sourceId && x.WorkspaceId == workspaceId).OrderBy(x => x.CreatedAtUtc).Select(x => new ResearchEvidenceResponse(x.Id, x.WorkspaceId, x.ResearchSourceId, x.Quote, x.Locator, x.Context, x.MetadataJson)).ToListAsync(cancellationToken);
@@ -23,6 +27,7 @@ public sealed class ResearchEvidenceController(YoutubeStudioDbContext db) : Cont
     {
         if (request.ResearchSourceId != sourceId) return BadRequest("Research source id does not match the route.");
         if (string.IsNullOrWhiteSpace(request.Quote)) return BadRequest("Research evidence quote is required.");
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null) return Forbid();
         if (!await db.ResearchSources.AnyAsync(x => x.Id == sourceId && x.ResearchProjectId == researchProjectId && x.WorkspaceId == request.WorkspaceId, cancellationToken))
             return NotFound("Research source does not exist in the specified workspace and project.");
         var evidence = new ResearchEvidence { WorkspaceId = request.WorkspaceId, ResearchSourceId = sourceId, Quote = request.Quote.Trim(), Locator = string.IsNullOrWhiteSpace(request.Locator) ? null : request.Locator.Trim(), Context = string.IsNullOrWhiteSpace(request.Context) ? null : request.Context.Trim(), MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson) ? "{}" : request.MetadataJson.Trim() };

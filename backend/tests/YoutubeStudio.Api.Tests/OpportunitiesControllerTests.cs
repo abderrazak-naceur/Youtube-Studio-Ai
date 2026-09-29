@@ -20,7 +20,7 @@ public sealed class OpportunitiesControllerTests
         db.Workspaces.Add(workspace);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateOpportunityRequest(workspace.Id, "  AI trends  ", 82.5m, 71m, "  audience need  ", "  strong rationale  "),
             CancellationToken.None);
@@ -42,7 +42,7 @@ public sealed class OpportunitiesControllerTests
         db.Workspaces.Add(workspace);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateOpportunityRequest(workspace.Id, "AI trends", 101m, 50m, null, null),
             CancellationToken.None);
@@ -63,7 +63,7 @@ public sealed class OpportunitiesControllerTests
             new Opportunity { WorkspaceId = workspace.Id, Title = "Other status", Status = "archived", OpportunityScore = 100, RevenueScore = 100 });
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GetAll(workspace.Id, "new", "revenueScore", "desc", CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
@@ -84,7 +84,7 @@ public sealed class OpportunitiesControllerTests
             new Opportunity { WorkspaceId = workspace.Id, Title = "High revenue", Status = "new", OpportunityScore = 70, RevenueScore = 80 });
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GetAll(workspace.Id, null, "REVENUESCORE", "ASC", CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
@@ -98,7 +98,7 @@ public sealed class OpportunitiesControllerTests
     public async Task GetAll_rejects_missing_workspace()
     {
         await using var db = CreateDb();
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.GetAll(Guid.NewGuid(), null, "opportunityScore", "desc", CancellationToken.None);
 
@@ -122,7 +122,7 @@ public sealed class OpportunitiesControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Update(
             opportunity.Id,
             new UpdateOpportunityRequest(workspace.Id, "  Updated  ", " qualified ", 88, 76, "  audience  ", "  rationale  "),
@@ -149,7 +149,7 @@ public sealed class OpportunitiesControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Update(
             opportunity.Id,
             new UpdateOpportunityRequest(other.Id, "Changed", "new", 50, 50, null, null),
@@ -168,7 +168,7 @@ public sealed class OpportunitiesControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Delete(opportunity.Id, workspace.Id, CancellationToken.None);
 
         Assert.IsType<NoContentResult>(result);
@@ -186,7 +186,7 @@ public sealed class OpportunitiesControllerTests
         db.Opportunities.Add(opportunity);
         await db.SaveChangesAsync();
 
-        var controller = new OpportunitiesController(db);
+        var controller = new OpportunitiesController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Delete(opportunity.Id, other.Id, CancellationToken.None);
 
         Assert.IsType<NotFoundObjectResult>(result);

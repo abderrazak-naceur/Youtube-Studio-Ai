@@ -128,7 +128,7 @@ public sealed class ThumbnailsControllerTests
     }
 
     private static ThumbnailsController CreateController(YoutubeStudioDbContext db, IThumbnailProvider provider) =>
-        new(db, provider);
+        new ThumbnailsController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

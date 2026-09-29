@@ -178,7 +178,7 @@ public sealed class MusicSfxControllerTests
     }
 
     private static MusicSfxController CreateController(YoutubeStudioDbContext db, IMusicSfxProvider provider) =>
-        new(db, provider);
+        new MusicSfxController(db, provider, new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

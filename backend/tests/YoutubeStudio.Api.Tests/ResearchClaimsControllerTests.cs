@@ -17,7 +17,7 @@ public sealed class ResearchClaimsControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, evidenceA, evidenceB) = await AddResearchAsync(db);
-        var controller = new ResearchClaimsController(db);
+        var controller = new ResearchClaimsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id,
             new CreateResearchClaimRequest(workspace.Id, "AI adoption is accelerating", [evidenceA.Id, evidenceB.Id]), CancellationToken.None);
@@ -35,7 +35,7 @@ public sealed class ResearchClaimsControllerTests
         await using var db = CreateDb();
         var (workspace, project, evidence, _) = await AddResearchAsync(db);
         var (otherWorkspace, _, otherEvidence, _) = await AddResearchAsync(db, "Other");
-        var controller = new ResearchClaimsController(db);
+        var controller = new ResearchClaimsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id,
             new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id, otherEvidence.Id]), CancellationToken.None);
@@ -50,7 +50,7 @@ public sealed class ResearchClaimsControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, evidence, _) = await AddResearchAsync(db);
-        var controller = new ResearchClaimsController(db);
+        var controller = new ResearchClaimsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id,
             new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id], MetadataJson: "not-json"), CancellationToken.None);
@@ -65,7 +65,7 @@ public sealed class ResearchClaimsControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, evidence, _) = await AddResearchAsync(db);
-        var controller = new ResearchClaimsController(db);
+        var controller = new ResearchClaimsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(project.Id,
             new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id], MetadataJson: "[]"), CancellationToken.None);
@@ -94,7 +94,7 @@ public sealed class ResearchClaimsControllerTests
     {
         await using var db = CreateDb();
         var (workspace, project, evidence, _) = await AddResearchAsync(db);
-        var controller = new ResearchClaimsController(db);
+        var controller = new ResearchClaimsController(db, new StubWorkspaceAccess()).WithUser();
         var create = await controller.Create(project.Id,
             new CreateResearchClaimRequest(workspace.Id, "Claim", [evidence.Id]), CancellationToken.None);
         var created = Assert.IsType<CreatedAtActionResult>(create.Result);

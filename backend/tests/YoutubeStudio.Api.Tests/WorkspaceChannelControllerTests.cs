@@ -59,7 +59,7 @@ public sealed class WorkspaceChannelControllerTests
             new Channel { WorkspaceId = otherWorkspace.Id, Name = "Other channel", Platform = "youtube" });
         await db.SaveChangesAsync();
 
-        var controller = new ChannelsController(db);
+        var controller = new ChannelsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GetAll(workspace.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
@@ -73,7 +73,7 @@ public sealed class WorkspaceChannelControllerTests
     public async Task Create_channel_rejects_missing_workspace()
     {
         await using var db = CreateDb();
-        var controller = new ChannelsController(db);
+        var controller = new ChannelsController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(
             new CreateChannelRequest(Guid.NewGuid(), "My channel"),
@@ -91,7 +91,7 @@ public sealed class WorkspaceChannelControllerTests
         db.Workspaces.Add(workspace);
         await db.SaveChangesAsync();
 
-        var controller = new ChannelsController(db);
+        var controller = new ChannelsController(db, new StubWorkspaceAccess()).WithUser();
         var result = await controller.Create(
             new CreateChannelRequest(workspace.Id, "My channel", "tiktok"),
             CancellationToken.None);

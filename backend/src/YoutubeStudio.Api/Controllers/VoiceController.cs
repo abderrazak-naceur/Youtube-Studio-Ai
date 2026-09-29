@@ -1,17 +1,21 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects")]
 public sealed class VoiceController(
     YoutubeStudioDbContext db,
-    IVoiceProvider voiceProvider) : ControllerBase
+    IVoiceProvider voiceProvider,
+    IWorkspaceAccess access) : ControllerBase
 {
     [HttpPost("{id:guid}/voice")]
     public async Task<ActionResult<VoiceGenerationResponse>> GenerateVoice(
@@ -21,6 +25,7 @@ public sealed class VoiceController(
     {
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
         if (project.Status != VideoProjectStatus.Producing)
             return Conflict("The video project must be producing before generating voice.");
 

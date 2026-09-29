@@ -1,19 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/channels")]
-public sealed class ChannelsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ChannelsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ChannelResponse>>> GetAll(
         [FromQuery] Guid workspaceId,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null)
+            return Forbid();
+
         var channels = await db.Channels
             .AsNoTracking()
             .Where(x => x.WorkspaceId == workspaceId)
@@ -34,6 +40,9 @@ public sealed class ChannelsController(YoutubeStudioDbContext db) : ControllerBa
 
         if (!string.Equals(request.Platform, "youtube", StringComparison.OrdinalIgnoreCase))
             return ValidationProblem("Only YouTube channels are supported in the MVP.");
+
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null)
+            return Forbid();
 
         var workspaceExists = await db.Workspaces.AnyAsync(x => x.Id == request.WorkspaceId, cancellationToken);
         if (!workspaceExists)

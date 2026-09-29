@@ -1,13 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/opportunities")]
-public sealed class OpportunitiesController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class OpportunitiesController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<OpportunityResponse>>> GetAll(
@@ -17,6 +20,9 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         [FromQuery] string direction = "desc",
         CancellationToken cancellationToken = default)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null)
+            return Forbid();
+
         var workspaceExists = await db.Workspaces.AnyAsync(x => x.Id == workspaceId, cancellationToken);
         if (!workspaceExists)
             return BadRequest("Workspace does not exist.");
@@ -66,6 +72,9 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         CreateOpportunityRequest request,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null)
+            return Forbid();
+
         var exists = await db.Workspaces.AnyAsync(x => x.Id == request.WorkspaceId, cancellationToken);
         if (!exists)
             return BadRequest("Workspace does not exist.");
@@ -99,6 +108,9 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         UpdateOpportunityRequest request,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null)
+            return Forbid();
+
         var opportunity = await db.Opportunities
             .SingleOrDefaultAsync(x => x.Id == id && x.WorkspaceId == request.WorkspaceId, cancellationToken);
 
@@ -132,6 +144,9 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db) : Control
         [FromQuery] Guid workspaceId,
         CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null)
+            return Forbid();
+
         var opportunity = await db.Opportunities
             .SingleOrDefaultAsync(x => x.Id == id && x.WorkspaceId == workspaceId, cancellationToken);
 
