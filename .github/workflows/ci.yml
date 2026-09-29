@@ -78,6 +78,7 @@ jobs:
             '20260912152000_AddResearchClaims'
             '20260912205000_AddResearchClaimProjectIndex'
             '20260913220000_AddResearchBriefs'
+            '20260914120000_AddFactCheck'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -97,6 +98,8 @@ jobs:
             research_claims
             research_claim_evidence
             research_briefs
+            fact_check_reports
+            fact_check_findings
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \

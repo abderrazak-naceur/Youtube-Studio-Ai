@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, FilePlus2, Plus, Trash2 } from 'lucide-react';
 import { ResearchEvidencePanel } from './ResearchEvidencePanel';
 import { ResearchClaimsPanel } from './ResearchClaimsPanel';
+import { FactCheckPanel } from './FactCheckPanel';
 import { ResearchBriefPanel } from './ResearchBriefPanel';
 
 type Opportunity = { id: string; title: string };
@@ -101,6 +102,7 @@ export function ResearchWorkspacePanel({ apiBase, workspaceId }: Props) {
       </div>
       <ResearchEvidencePanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} sources={sources} />
       <ResearchClaimsPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} sources={sources} />
+      <FactCheckPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} />
       <ResearchBriefPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} projectTitle={opportunityById.get(projects.find(project => project.id === selectedProjectId)?.opportunityId ?? '') ?? ''} sources={sources} onSaved={() => void loadProjects()} />
     </>}
   </section>;
