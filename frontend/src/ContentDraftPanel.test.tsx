@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContentDraftPanel } from './ContentDraftPanel';
 
 const readyDraft = {
+  id: 'draft-1',
   angle: 'A clear, evidence-based explanation of Creator planning.',
   hook: 'What most people get wrong about Creator planning.',
   outline: '1. Hook\n2. Why this matters',
@@ -72,5 +73,28 @@ describe('ContentDraftPanel', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Generate content/i }));
 
     expect(await screen.findByText('Run a fact check before generating content.')).toBeInTheDocument();
+  });
+
+  it('creates a video project from a ready draft', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === 'POST' && url.endsWith('/video-projects/from-content-draft')) {
+        return Promise.resolve({ ok: true, json: async () => ({ id: 'video-1', source: 'content_draft' }) });
+      }
+      if (url.includes('/content-draft?')) return Promise.resolve({ ok: true, json: async () => readyDraft });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ContentDraftPanel apiBase="http://api.test" workspaceId="workspace-1" researchProjectId="project-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Create video from draft/i }));
+
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) =>
+      String(url) === 'http://api.test/api/v1/video-projects/from-content-draft' &&
+      options?.method === 'POST' &&
+      options?.body === JSON.stringify({ workspaceId: 'workspace-1', contentDraftId: 'draft-1' })
+    )).toBe(true));
+    expect(await screen.findByText(/Video project created from this draft/i)).toBeInTheDocument();
   });
 });

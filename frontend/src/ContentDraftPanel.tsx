@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { FileText, Image, ListOrdered, PenLine, Sparkles, Tags } from 'lucide-react';
+import { FileText, Image, ListOrdered, PenLine, Sparkles, Tags, Video } from 'lucide-react';
 
 type Chapter = { timestamp: string; title: string };
 type Draft = {
+  id: string;
   angle: string;
   hook: string;
   outline: string;
@@ -18,6 +19,7 @@ type Props = { apiBase: string; workspaceId: string; researchProjectId: string; 
 
 function normalize(payload: Partial<Draft>): Draft {
   return {
+    id: typeof payload.id === 'string' ? payload.id : '',
     angle: typeof payload.angle === 'string' ? payload.angle : '',
     hook: typeof payload.hook === 'string' ? payload.hook : '',
     outline: typeof payload.outline === 'string' ? payload.outline : '',
@@ -35,6 +37,7 @@ export function ContentDraftPanel({ apiBase, workspaceId, researchProjectId, onG
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [videoMessage, setVideoMessage] = useState('');
 
   async function load() {
     const scopedWorkspaceId = workspaceId.trim();
@@ -72,6 +75,27 @@ export function ContentDraftPanel({ apiBase, workspaceId, researchProjectId, onG
     }
   }
 
+  async function createVideo() {
+    const scopedWorkspaceId = workspaceId.trim();
+    if (!scopedWorkspaceId || !draft?.id) return;
+    setBusy(true);
+    setError('');
+    setVideoMessage('');
+    try {
+      const response = await fetch(`${apiBase}/api/v1/video-projects/from-content-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: scopedWorkspaceId, contentDraftId: draft.id })
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setVideoMessage('Video project created from this draft. Open it from your projects to start production.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to create a video from this draft.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return <section className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -83,7 +107,11 @@ export function ContentDraftPanel({ apiBase, workspaceId, researchProjectId, onG
     </div>
     {error && <p className="mt-3 rounded-lg border border-red-900/50 bg-red-950/20 px-3 py-2 text-xs text-red-300">{error}</p>}
     {!draft ? <p className="mt-4 rounded-xl border border-dashed border-zinc-800 p-8 text-center text-sm text-zinc-600">No content yet. Generate an editorial draft once the fact check is complete.</p> : <>
-      <span className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold">{draft.status === 'ready' ? 'Ready for production' : 'Draft — pending review'}</span>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold">{draft.status === 'ready' ? 'Ready for production' : 'Draft — pending review'}</span>
+        {draft.status === 'ready' && <button onClick={() => void createVideo()} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-zinc-950 disabled:opacity-40"><Video size={14} /> Create video from draft</button>}
+      </div>
+      {videoMessage && <p className="mt-3 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-300">{videoMessage}</p>}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Block icon={<PenLine size={15} />} title="Angle"><p className="text-sm leading-6 text-zinc-300">{draft.angle}</p></Block>
         <Block icon={<Sparkles size={15} />} title="Hook"><p className="text-sm leading-6 text-zinc-300">{draft.hook}</p></Block>

@@ -41,7 +41,7 @@ public sealed class VideoProjectsController(
             .OrderByDescending(x => x.CreatedAtUtc)
             .Select(x => new ProductionJobResponse(x.Id, x.Status.ToString(), x.Attempt, x.LastCompletedStage, x.Error))
             .FirstOrDefaultAsync(cancellationToken);
-        return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, job));
+        return Ok(new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, job, project.Source, project.ContentDraftId));
     }
 
     [HttpPost]
@@ -54,6 +54,33 @@ public sealed class VideoProjectsController(
         db.VideoProjects.Add(project);
         await db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(Get), new { id = project.Id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null));
+    }
+
+    [HttpPost("from-content-draft")]
+    public async Task<ActionResult<VideoProjectResponse>> CreateFromContentDraft(CreateVideoProjectFromContentDraftRequest request, CancellationToken cancellationToken)
+    {
+        if (!await db.Workspaces.AnyAsync(x => x.Id == request.WorkspaceId, cancellationToken)) return BadRequest("Workspace does not exist.");
+        if (request.ChannelId.HasValue && !await db.Channels.AnyAsync(x => x.Id == request.ChannelId.Value && x.WorkspaceId == request.WorkspaceId, cancellationToken)) return BadRequest("Channel does not belong to the workspace.");
+
+        var draft = await db.ContentDrafts.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == request.ContentDraftId && x.WorkspaceId == request.WorkspaceId, cancellationToken);
+        if (draft is null) return NotFound("Content draft does not exist in the specified workspace.");
+        if (draft.Status != "ready") return Conflict("Only a content draft marked ready can seed a video project.");
+
+        var prompt = string.IsNullOrWhiteSpace(draft.Angle) ? draft.Hook : draft.Angle;
+        var project = new VideoProject
+        {
+            WorkspaceId = request.WorkspaceId,
+            ChannelId = request.ChannelId,
+            Prompt = string.IsNullOrWhiteSpace(prompt) ? "Video from content draft" : prompt.Trim(),
+            Script = string.IsNullOrWhiteSpace(draft.Script) ? null : draft.Script.Trim(),
+            ContentDraftId = draft.Id,
+            Source = "content_draft",
+            Status = VideoProjectStatus.Draft
+        };
+        db.VideoProjects.Add(project);
+        await db.SaveChangesAsync(cancellationToken);
+        return CreatedAtAction(nameof(Get), new { id = project.Id }, new VideoProjectResponse(project.Id, project.WorkspaceId, project.ChannelId, project.Prompt, project.Status.ToString(), project.Title, project.Script, null, project.Source, project.ContentDraftId));
     }
 
     [HttpPost("{id:guid}/script")]
@@ -134,7 +161,8 @@ public sealed class VideoProjectsController(
 }
 
 public sealed record CreateVideoProjectRequest(Guid WorkspaceId, Guid? ChannelId, string Prompt);
+public sealed record CreateVideoProjectFromContentDraftRequest(Guid WorkspaceId, Guid ContentDraftId, Guid? ChannelId = null);
 public sealed record GenerateScriptRequest(string ResearchSummary);
 public sealed record VideoProjectListItemResponse(Guid Id, string Prompt, string Status, string? Title, DateTime UpdatedAtUtc);
-public sealed record VideoProjectResponse(Guid Id, Guid WorkspaceId, Guid? ChannelId, string Prompt, string Status, string? Title, string? Script, ProductionJobResponse? LatestJob);
+public sealed record VideoProjectResponse(Guid Id, Guid WorkspaceId, Guid? ChannelId, string Prompt, string Status, string? Title, string? Script, ProductionJobResponse? LatestJob, string Source = "prompt", Guid? ContentDraftId = null);
 public sealed record ProductionJobResponse(Guid Id, string Status, int Attempt, string? LastCompletedStage, string? Error);

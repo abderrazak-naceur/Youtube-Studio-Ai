@@ -77,8 +77,28 @@ public sealed class ProductionPipelineTests
         Assert.Equal(11, await db.ProductionArtifacts.CountAsync());
     }
 
+    [Fact]
+    public async Task RunJob_reuses_the_content_draft_script_instead_of_regenerating()
+    {
+        await using var db = CreateDb();
+        var spyScript = new SpyScriptProvider();
+        var (job, services) = await SetupAsync(db, scriptProvider: spyScript);
+        job.VideoProject.ContentDraftId = Guid.NewGuid();
+        job.VideoProject.Title = "Editorial title";
+        job.VideoProject.Script = "Editorial script from the content draft.";
+        await db.SaveChangesAsync();
+        var pipeline = CreatePipeline(db, services, maxAttempts: 3);
+
+        await pipeline.RunJobAsync(job, CancellationToken.None);
+
+        Assert.Equal(ProductionJobStatus.Succeeded, job.Status);
+        Assert.Equal("Editorial title", job.VideoProject.Title);
+        Assert.Equal("Editorial script from the content draft.", job.VideoProject.Script);
+        Assert.Equal(0, spyScript.Calls);
+    }
+
     private static async Task<(ProductionJob Job, IServiceProvider Services)> SetupAsync(
-        YoutubeStudioDbContext db, int researchFailures = 0)
+        YoutubeStudioDbContext db, int researchFailures = 0, IScriptProvider? scriptProvider = null)
     {
         var workspace = new Workspace { Name = "Creator workspace" };
         var project = new VideoProject { WorkspaceId = workspace.Id, Prompt = "Explain how AI helps creators plan videos.", Status = VideoProjectStatus.Draft };
@@ -91,7 +111,7 @@ public sealed class ProductionPipelineTests
 
         var services = new ServiceCollection();
         services.AddSingleton<IResearchProvider>(new FlakyResearchProvider(researchFailures));
-        services.AddSingleton<IScriptProvider, PlaceholderScriptProvider>();
+        services.AddSingleton<IScriptProvider>(scriptProvider ?? new PlaceholderScriptProvider());
         services.AddSingleton<IScenePlanProvider, PlaceholderScenePlanProvider>();
         services.AddSingleton<IVoiceProvider, PlaceholderVoiceProvider>();
         services.AddSingleton<IVisualProvider, PlaceholderVisualProvider>();
@@ -110,6 +130,20 @@ public sealed class ProductionPipelineTests
 
     private static YoutubeStudioDbContext CreateDb() =>
         new(new DbContextOptionsBuilder<YoutubeStudioDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    /// <summary>Script provider that records how many times it was invoked.</summary>
+    private sealed class SpyScriptProvider : IScriptProvider
+    {
+        public int Calls { get; private set; }
+        public string ProviderName => "placeholder";
+        public AiTask SupportedTask => AiTask.Script;
+
+        public Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(new ScriptResult("Generated", "Generated script."));
+        }
+    }
 
     /// <summary>Research provider that throws for the first N calls, then succeeds like the placeholder.</summary>
     private sealed class FlakyResearchProvider(int failures) : IResearchProvider

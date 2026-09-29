@@ -44,11 +44,19 @@ public sealed class ProductionPipeline(
                 JsonSerializer.Serialize(new { sources = researchResult.Sources }), cancellationToken);
             await CompleteStageAsync(job, VideoProjectStatus.Researching, cancellationToken);
 
-            var scriptResult = await script.GenerateScriptAsync(new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
+            // A project seeded from an approved content draft already carries an editorial
+            // script; reuse it so the pipeline is continuous from research → content → video
+            // instead of re-generating a script from the raw prompt.
+            var reuseDraftScript = job.VideoProject.ContentDraftId is not null && !string.IsNullOrWhiteSpace(job.VideoProject.Script);
+            var scriptResult = reuseDraftScript
+                ? new ScriptResult(
+                    string.IsNullOrWhiteSpace(job.VideoProject.Title) ? job.VideoProject.Prompt : job.VideoProject.Title!,
+                    job.VideoProject.Script!)
+                : await script.GenerateScriptAsync(new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
             job.VideoProject.Title = scriptResult.Title;
             job.VideoProject.Script = scriptResult.Script;
             await AddArtifactAsync(job.VideoProject, ProductionArtifactType.Script, "script", scriptResult.Script,
-                JsonSerializer.Serialize(new { title = scriptResult.Title }), cancellationToken);
+                JsonSerializer.Serialize(new { title = scriptResult.Title, fromContentDraft = reuseDraftScript }), cancellationToken);
             await SetStageAsync(job, VideoProjectStatus.Scripted, cancellationToken);
             await CompleteStageAsync(job, VideoProjectStatus.Scripted, cancellationToken);
 

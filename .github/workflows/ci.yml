@@ -80,6 +80,7 @@ jobs:
             '20260913220000_AddResearchBriefs'
             '20260914120000_AddFactCheck'
             '20260915120000_AddContentDrafts'
+            '20260916120000_AddVideoProjectContentLink'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
