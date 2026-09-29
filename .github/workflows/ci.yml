@@ -88,6 +88,7 @@ jobs:
             '20260929205935_AddArtifactVersion'
             '20260929210712_AddChannelProfile'
             '20260929211100_AddChannelDna'
+            '20260929212141_AddDomainEvents'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -113,6 +114,7 @@ jobs:
             content_genomes
             video_outcomes
             audit_events
+            domain_events
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \
@@ -264,6 +266,10 @@ jobs:
           # Audit trail: the approval must leave an immutable audit record.
           audit_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/audit)
           jq -e 'any(.[]; .action == "video.approved")' <<<"$audit_response" >/dev/null
+
+          # Domain events: the approval emits a video.approved event on the workspace stream.
+          events_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/workspaces/$workspace_id/events)
+          jq -e 'any(.[]; .type == "video.approved")' <<<"$events_response" >/dev/null
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests

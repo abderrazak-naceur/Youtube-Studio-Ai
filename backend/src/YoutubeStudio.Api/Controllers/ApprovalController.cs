@@ -18,7 +18,7 @@ namespace YoutubeStudio.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/video-projects")]
-public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService audit, IWorkspaceAccess access) : ControllerBase
+public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService audit, IWorkspaceAccess access, IDomainEventPublisher events) : ControllerBase
 {
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<ApprovalResponse>> Approve(Guid id, ApprovalDecisionRequest request, CancellationToken cancellationToken)
@@ -71,6 +71,7 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
         audit.Record("video.approved", request.Reviewer.Trim(),
             workspaceId: project.WorkspaceId, videoProjectId: project.Id,
             details: new { renderAssetId = renderArtifact.ProviderAssetId, notes = request.Notes?.Trim(), aiDisclosureAcknowledged = request.AiDisclosureAcknowledged });
+        events.Publish("video.approved", project.WorkspaceId, project.Id, new { reviewer = request.Reviewer.Trim() });
 
         project.Status = VideoProjectStatus.Completed;
         project.UpdatedAtUtc = DateTime.UtcNow;
@@ -112,6 +113,7 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
         audit.Record("video.rejected", request.Reviewer.Trim(),
             workspaceId: project.WorkspaceId, videoProjectId: project.Id,
             details: new { notes = request.Notes.Trim() });
+        events.Publish("video.rejected", project.WorkspaceId, project.Id, new { reviewer = request.Reviewer.Trim() });
 
         project.Status = VideoProjectStatus.Rejected;
         project.UpdatedAtUtc = DateTime.UtcNow;

@@ -139,7 +139,18 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 HasMetadata: !string.IsNullOrWhiteSpace(metadataResult.Title),
                 AllAssetsHaveKnownRights: true), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa, "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
-            if (!qaResult.Passed) throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
+            if (!qaResult.Passed)
+            {
+                db.DomainEvents.Add(new DomainEvent
+                {
+                    Type = "quality_gate.failed",
+                    WorkspaceId = job.VideoProject.WorkspaceId,
+                    AggregateId = job.VideoProjectId,
+                    Payload = JsonSerializer.Serialize(new { findings = qaResult.Findings })
+                });
+                await db.SaveChangesAsync(cancellationToken);
+                throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
+            }
 
             // The automated pipeline stops at the human quality gate. Final export
             // to Completed only happens through an explicit approval decision.

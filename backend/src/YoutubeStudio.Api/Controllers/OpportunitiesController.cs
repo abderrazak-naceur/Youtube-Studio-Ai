@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services;
 using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Scoring;
 
@@ -11,7 +12,7 @@ namespace YoutubeStudio.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/v1/opportunities")]
-public sealed class OpportunitiesController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
+public sealed class OpportunitiesController(YoutubeStudioDbContext db, IWorkspaceAccess access, IDomainEventPublisher events) : ControllerBase
 {
     [HttpPost("score")]
     public async Task<ActionResult<OpportunityScoreResponse>> Score(ScoreOpportunityRequest request, CancellationToken cancellationToken)
@@ -119,6 +120,8 @@ public sealed class OpportunitiesController(YoutubeStudioDbContext db, IWorkspac
         };
 
         db.Opportunities.Add(opportunity);
+        events.Publish("opportunity.created", opportunity.WorkspaceId, opportunity.Id,
+            new { opportunity.Title, opportunity.OpportunityScore, opportunity.RevenueScore });
         await db.SaveChangesAsync(cancellationToken);
 
         return CreatedAtAction(nameof(GetAll), new { workspaceId = opportunity.WorkspaceId },

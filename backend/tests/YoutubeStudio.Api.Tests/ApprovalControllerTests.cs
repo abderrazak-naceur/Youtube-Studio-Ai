@@ -12,7 +12,7 @@ namespace YoutubeStudio.Api.Tests;
 public sealed class ApprovalControllerTests
 {
     private static ApprovalController CreateController(YoutubeStudioDbContext db, WorkspaceRole role = WorkspaceRole.Owner) =>
-        new ApprovalController(db, new AuditService(db), new StubWorkspaceAccess(role)).WithUser();
+        new ApprovalController(db, new AuditService(db), new StubWorkspaceAccess(role), new DomainEventPublisher(db)).WithUser();
     [Fact]
     public async Task Approve_returns_not_found_for_missing_project()
     {

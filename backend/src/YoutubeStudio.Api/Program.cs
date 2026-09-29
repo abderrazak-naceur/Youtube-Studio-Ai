@@ -21,6 +21,7 @@ builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
 
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
 // Authentication / authorization.
