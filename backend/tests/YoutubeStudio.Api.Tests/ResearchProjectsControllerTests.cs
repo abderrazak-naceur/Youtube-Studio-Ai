@@ -98,8 +98,6 @@ public sealed class ResearchProjectsControllerTests
         Assert.Equal(firstOpportunity.Id, projects[0].OpportunityId);
     }
 
-<<<<<<< HEAD
-=======
     [Fact]
     public async Task Create_source_persists_source_for_project()
     {
@@ -200,7 +198,6 @@ public sealed class ResearchProjectsControllerTests
         Assert.Equal("https://example.com/one", sources[0].Url);
     }
 
->>>>>>> e05fe44a644dab5b663ffa022f82b2cf3aefd6b1
     private static YoutubeStudioDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<YoutubeStudioDbContext>()
