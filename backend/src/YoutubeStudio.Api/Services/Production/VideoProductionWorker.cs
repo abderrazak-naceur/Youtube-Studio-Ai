@@ -29,15 +29,16 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<YoutubeStudioDbContext>();
-        var research = scope.ServiceProvider.GetRequiredService<IResearchProvider>();
-        var script = scope.ServiceProvider.GetRequiredService<IScriptProvider>();
-        var scenePlan = scope.ServiceProvider.GetRequiredService<IScenePlanProvider>();
-        var voice = scope.ServiceProvider.GetRequiredService<IVoiceProvider>();
-        var visual = scope.ServiceProvider.GetRequiredService<IVisualProvider>();
-        var musicSfx = scope.ServiceProvider.GetRequiredService<IMusicSfxProvider>();
-        var captions = scope.ServiceProvider.GetRequiredService<ICaptionProvider>();
-        var render = scope.ServiceProvider.GetRequiredService<IRenderProvider>();
-        var qa = scope.ServiceProvider.GetRequiredService<IQaProvider>();
+        var router = scope.ServiceProvider.GetRequiredService<IModelRouter>();
+        var research = router.Resolve(AiTask.Research, scope.ServiceProvider.GetServices<IResearchProvider>());
+        var script = router.Resolve(AiTask.Script, scope.ServiceProvider.GetServices<IScriptProvider>());
+        var scenePlan = router.Resolve(AiTask.ScenePlan, scope.ServiceProvider.GetServices<IScenePlanProvider>());
+        var voice = router.Resolve(AiTask.Voice, scope.ServiceProvider.GetServices<IVoiceProvider>());
+        var visual = router.Resolve(AiTask.Visual, scope.ServiceProvider.GetServices<IVisualProvider>());
+        var musicSfx = router.Resolve(AiTask.MusicSfx, scope.ServiceProvider.GetServices<IMusicSfxProvider>());
+        var captions = router.Resolve(AiTask.Captions, scope.ServiceProvider.GetServices<ICaptionProvider>());
+        var render = router.Resolve(AiTask.Render, scope.ServiceProvider.GetServices<IRenderProvider>());
+        var qa = router.Resolve(AiTask.Qa, scope.ServiceProvider.GetServices<IQaProvider>());
 
         var job = await db.ProductionJobs.Include(x => x.VideoProject)
             .Where(x => x.Status == ProductionJobStatus.Queued)

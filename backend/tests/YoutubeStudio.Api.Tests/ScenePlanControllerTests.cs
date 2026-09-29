@@ -139,6 +139,8 @@ public sealed class ScenePlanControllerTests
 
     private sealed class RecordingScenePlanProvider : IScenePlanProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.ScenePlan;
         public ScenePlanRequest? Request { get; private set; }
 
         public Task<ScenePlanResult> CreateScenePlanAsync(ScenePlanRequest request, CancellationToken cancellationToken)
@@ -153,6 +155,8 @@ public sealed class ScenePlanControllerTests
 
     private sealed class EmptyScenePlanProvider : IScenePlanProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.ScenePlan;
         public Task<ScenePlanResult> CreateScenePlanAsync(ScenePlanRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new ScenePlanResult([]));
     }

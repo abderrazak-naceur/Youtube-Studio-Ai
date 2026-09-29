@@ -29,47 +29,47 @@ public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);
 public sealed record QaRequest(string Title, string Script, string? RenderAssetId);
 public sealed record QaResult(bool Passed, IReadOnlyList<string> Findings);
 
-public interface IResearchProvider
+public interface IResearchProvider : IAiProvider
 {
     Task<ResearchResult> ResearchAsync(ResearchRequest request, CancellationToken cancellationToken);
 }
 
-public interface IScriptProvider
+public interface IScriptProvider : IAiProvider
 {
     Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken);
 }
 
-public interface IScenePlanProvider
+public interface IScenePlanProvider : IAiProvider
 {
     Task<ScenePlanResult> CreateScenePlanAsync(ScenePlanRequest request, CancellationToken cancellationToken);
 }
 
-public interface IVoiceProvider
+public interface IVoiceProvider : IAiProvider
 {
     Task<VoiceResult> GenerateVoiceAsync(VoiceRequest request, CancellationToken cancellationToken);
 }
 
-public interface IVisualProvider
+public interface IVisualProvider : IAiProvider
 {
     Task<VisualResult> GenerateVisualAsync(VisualRequest request, CancellationToken cancellationToken);
 }
 
-public interface IMusicSfxProvider
+public interface IMusicSfxProvider : IAiProvider
 {
     Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken);
 }
 
-public interface ICaptionProvider
+public interface ICaptionProvider : IAiProvider
 {
     Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken);
 }
 
-public interface IRenderProvider
+public interface IRenderProvider : IAiProvider
 {
     Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken);
 }
 
-public interface IQaProvider
+public interface IQaProvider : IAiProvider
 {
     Task<QaResult> EvaluateAsync(QaRequest request, CancellationToken cancellationToken);
 }

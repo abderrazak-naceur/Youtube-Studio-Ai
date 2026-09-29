@@ -2,6 +2,9 @@ namespace YoutubeStudio.Api.Services.Providers;
 
 public sealed class PlaceholderResearchProvider : IResearchProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Research;
+
     public Task<ResearchResult> ResearchAsync(ResearchRequest request, CancellationToken cancellationToken)
     {
         return Task.FromResult(new ResearchResult(
@@ -12,6 +15,9 @@ public sealed class PlaceholderResearchProvider : IResearchProvider
 
 public sealed class PlaceholderScriptProvider : IScriptProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Script;
+
     public Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken)
     {
         var title = request.Prompt.Trim().Length <= 120 ? request.Prompt.Trim() : request.Prompt.Trim()[..120].TrimEnd() + "…";
@@ -22,6 +28,9 @@ public sealed class PlaceholderScriptProvider : IScriptProvider
 
 public sealed class PlaceholderScenePlanProvider : IScenePlanProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.ScenePlan;
+
     public Task<ScenePlanResult> CreateScenePlanAsync(ScenePlanRequest request, CancellationToken cancellationToken)
     {
         return Task.FromResult(new ScenePlanResult([
@@ -34,24 +43,36 @@ public sealed class PlaceholderScenePlanProvider : IScenePlanProvider
 
 public sealed class PlaceholderVoiceProvider : IVoiceProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Voice;
+
     public Task<VoiceResult> GenerateVoiceAsync(VoiceRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(new VoiceResult("placeholder-voice", "audio/mpeg", TimeSpan.FromSeconds(Math.Max(1, request.Script.Length / 15))));
 }
 
 public sealed class PlaceholderVisualProvider : IVisualProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Visual;
+
     public Task<VisualResult> GenerateVisualAsync(VisualRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(new VisualResult("placeholder-visual", "placeholder"));
 }
 
 public sealed class PlaceholderMusicSfxProvider : IMusicSfxProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.MusicSfx;
+
     public Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(new MusicSfxResult("placeholder-music-sfx", "placeholder-audio"));
 }
 
 public sealed class PlaceholderCaptionProvider : ICaptionProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Captions;
+
     public Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken)
     {
         var text = request.Script.Trim();
@@ -64,12 +85,18 @@ public sealed class PlaceholderCaptionProvider : ICaptionProvider
 
 public sealed class PlaceholderRenderProvider : IRenderProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Render;
+
     public Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(new RenderResult("placeholder-render", TimeSpan.FromSeconds(28)));
 }
 
 public sealed class PlaceholderQaProvider : IQaProvider
 {
+    public string ProviderName => "placeholder";
+    public AiTask SupportedTask => AiTask.Qa;
+
     public Task<QaResult> EvaluateAsync(QaRequest request, CancellationToken cancellationToken) =>
         Task.FromResult(new QaResult(true, Array.Empty<string>()));
 }

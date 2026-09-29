@@ -17,6 +17,9 @@ builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
+builder.Services.Configure<AiProviderOptions>(builder.Configuration.GetSection(AiProviderOptions.SectionName));
+builder.Services.AddSingleton<IModelRouter, ModelRouter>();
+
 builder.Services.AddScoped<IResearchProvider, PlaceholderResearchProvider>();
 builder.Services.AddScoped<IScriptProvider, PlaceholderScriptProvider>();
 builder.Services.AddScoped<IScenePlanProvider, PlaceholderScenePlanProvider>();

@@ -156,6 +156,8 @@ public sealed class VisualsControllerTests
 
     private sealed class RecordingVisualProvider : IVisualProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Visual;
         public List<VisualRequest> Requests { get; } = [];
 
         public Task<VisualResult> GenerateVisualAsync(VisualRequest request, CancellationToken cancellationToken)
@@ -167,6 +169,8 @@ public sealed class VisualsControllerTests
 
     private sealed class InvalidVisualProvider : IVisualProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Visual;
         public Task<VisualResult> GenerateVisualAsync(VisualRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new VisualResult(string.Empty, "image"));
     }
