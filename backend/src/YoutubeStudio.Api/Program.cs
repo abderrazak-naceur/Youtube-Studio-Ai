@@ -56,7 +56,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IResearchProvider, PlaceholderResearchProvider>();
-builder.Services.AddScoped<IScriptProvider, PlaceholderScriptProvider>();
+
+// Script provider: real HTTP LLM adapter when configured, placeholder fallback otherwise.
+var scriptOptions = new ScriptProviderOptions();
+builder.Configuration.GetSection(ScriptProviderOptions.SectionName).Bind(scriptOptions);
+builder.Services.AddSingleton(scriptOptions);
+builder.Services.AddHttpClient("script-provider");
+builder.Services.AddScoped<PlaceholderScriptProvider>();
+builder.Services.AddScoped<IScriptProvider, HttpScriptProvider>();
 builder.Services.AddScoped<IScenePlanProvider, PlaceholderScenePlanProvider>();
 builder.Services.AddScoped<IVoiceProvider, PlaceholderVoiceProvider>();
 builder.Services.AddScoped<IVisualProvider, PlaceholderVisualProvider>();
