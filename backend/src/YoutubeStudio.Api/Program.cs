@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Services;
+using YoutubeStudio.Api.Services.Ai;
 using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Production;
 using YoutubeStudio.Api.Services.Providers;
@@ -22,6 +23,7 @@ builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
+builder.Services.AddSingleton<IModelRouter, ModelRouter>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
 // Authentication / authorization.
