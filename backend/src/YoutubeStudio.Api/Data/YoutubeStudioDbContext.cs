@@ -26,6 +26,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<DomainEvent> DomainEvents => Set<DomainEvent>();
     public DbSet<ProviderUsage> ProviderUsages => Set<ProviderUsage>();
+    public DbSet<Experiment> Experiments => Set<Experiment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +51,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
         modelBuilder.Entity<VideoOutcome>(entity => { entity.ToTable("video_outcomes"); entity.HasKey(x => x.Id); entity.Property(x => x.Source).HasMaxLength(100).IsRequired(); entity.Property(x => x.EstimatedRevenueUsd).HasPrecision(18, 6); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.MeasuredAtUtc }); });
         modelBuilder.Entity<AuditEvent>(entity => { entity.ToTable("audit_events"); entity.HasKey(x => x.Id); entity.Property(x => x.Action).HasMaxLength(100).IsRequired(); entity.Property(x => x.Actor).HasMaxLength(200).IsRequired(); entity.Property(x => x.DetailsJson).HasMaxLength(200000); entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }); entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc }); });
         modelBuilder.Entity<DomainEvent>(entity => { entity.ToTable("domain_events"); entity.HasKey(x => x.Id); entity.Property(x => x.Type).HasMaxLength(100).IsRequired(); entity.Property(x => x.Payload).HasMaxLength(200000); entity.HasIndex(x => new { x.WorkspaceId, x.OccurredAtUtc }); entity.HasIndex(x => new { x.AggregateId, x.OccurredAtUtc }); entity.HasIndex(x => x.Type); });
+        modelBuilder.Entity<Experiment>(entity => { entity.ToTable("experiments"); entity.HasKey(x => x.Id); entity.Property(x => x.Variable).HasMaxLength(100).IsRequired(); entity.Property(x => x.Hypothesis).HasMaxLength(4000).IsRequired(); entity.Property(x => x.SuccessMetric).HasMaxLength(100).IsRequired(); entity.Property(x => x.DecisionRule).HasMaxLength(4000); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.Property(x => x.Outcome).HasMaxLength(4000); entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }); });
         modelBuilder.Entity<ProviderUsage>(entity => { entity.ToTable("provider_usage"); entity.HasKey(x => x.Id); entity.Property(x => x.Provider).HasMaxLength(200).IsRequired(); entity.Property(x => x.Model).HasMaxLength(200).IsRequired(); entity.Property(x => x.TaskType).HasMaxLength(50).IsRequired(); entity.Property(x => x.Currency).HasMaxLength(10).IsRequired(); entity.Property(x => x.InputUnits).HasPrecision(18, 4); entity.Property(x => x.OutputUnits).HasPrecision(18, 4); entity.Property(x => x.UnitPriceUsd).HasPrecision(18, 6); entity.Property(x => x.TotalCostUsd).HasPrecision(18, 6); entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }); entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc }); entity.HasIndex(x => x.Provider); });
     }
 }

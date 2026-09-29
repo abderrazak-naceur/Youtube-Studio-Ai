@@ -90,6 +90,7 @@ jobs:
             '20260929211100_AddChannelDna'
             '20260929212141_AddDomainEvents'
             '20260929212816_AddProviderUsage'
+            '20260929213628_AddExperiments'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -117,6 +118,7 @@ jobs:
             audit_events
             domain_events
             provider_usage
+            experiments
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \
