@@ -77,6 +77,8 @@ jobs:
             '20260912145000_AddResearchEvidence'
             '20260912152000_AddResearchClaims'
             '20260912205000_AddResearchClaimProjectIndex'
+            '20260913220000_AddResearchBriefs'
+            '20260929182331_AddProductionCosts'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -95,6 +97,7 @@ jobs:
             research_evidence
             research_claims
             research_claim_evidence
+            production_costs
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \
@@ -198,6 +201,12 @@ jobs:
           for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Render Qa Approval; do
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
+
+          # Cost tracking: every produced video must leave measurable per-stage cost data.
+          costs_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/costs)
+          jq -e '.totalCostUsd > 0' <<<"$costs_response" >/dev/null
+          jq -e '(.byStage | length) >= 1' <<<"$costs_response" >/dev/null
+          jq -e 'any(.byStage[]; .stage == "Render")' <<<"$costs_response" >/dev/null
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests

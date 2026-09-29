@@ -71,6 +71,8 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
             var voiceResult = await voice.GenerateVoiceAsync(new VoiceRequest(scriptResult.Script, null), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Voice, voiceResult.ProviderAssetId, null,
                 JsonSerializer.Serialize(new { mediaType = voiceResult.MediaType, durationSeconds = voiceResult.Duration.TotalSeconds }), cancellationToken);
+            await AddCostAsync(db, job.VideoProject, "Voice", voiceResult.ProviderAssetId,
+                (decimal)voiceResult.Duration.TotalSeconds, CostRates.VoicePerSecondUsd, cancellationToken);
 
             var visualAssetIds = new List<string>();
             foreach (var scene in planResult.Scenes)
@@ -79,15 +81,21 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 visualAssetIds.Add(result.ProviderAssetId);
                 await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Visual, result.ProviderAssetId,
                     scene.VisualDirection, JsonSerializer.Serialize(new { scene = scene.Number, mediaType = result.MediaType }), cancellationToken);
+                await AddCostAsync(db, job.VideoProject, "Visual", result.ProviderAssetId,
+                    1m, CostRates.VisualPerSceneUsd, cancellationToken);
             }
 
             var musicSfxResult = await musicSfx.GenerateMusicSfxAsync(
                 new MusicSfxRequest(scriptResult.Title, scriptResult.Script, planResult.Scenes.Sum(x => x.DurationSeconds)), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.MusicSfx, musicSfxResult.ProviderAssetId,
                 null, JsonSerializer.Serialize(new { mediaType = musicSfxResult.MediaType }), cancellationToken);
+            await AddCostAsync(db, job.VideoProject, "MusicSfx", musicSfxResult.ProviderAssetId,
+                planResult.Scenes.Sum(x => x.DurationSeconds), CostRates.MusicSfxPerSecondUsd, cancellationToken);
 
             var captionResult = await captions.GenerateCaptionsAsync(new CaptionRequest(scriptResult.Script), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Captions, captionResult.ProviderAssetId, null, null, cancellationToken);
+            await AddCostAsync(db, job.VideoProject, "Captions", captionResult.ProviderAssetId,
+                1m, CostRates.CaptionsPerVideoUsd, cancellationToken);
 
             var thumbnailResult = await thumbnail.GenerateThumbnailsAsync(
                 new ThumbnailRequest(scriptResult.Title, scriptResult.Script, 3), cancellationToken);
@@ -96,12 +104,16 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 primaryThumbnail?.ProviderAssetId ?? "thumbnail",
                 null,
                 JsonSerializer.Serialize(new { candidates = thumbnailResult.Candidates }), cancellationToken);
+            await AddCostAsync(db, job.VideoProject, "Thumbnail", primaryThumbnail?.ProviderAssetId ?? "thumbnail",
+                Math.Max(1, thumbnailResult.Candidates.Count), CostRates.ThumbnailPerCandidateUsd, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Rendering, cancellationToken);
 
             var renderResult = await render.RenderAsync(
                 new RenderRequest([voiceResult.ProviderAssetId, ..visualAssetIds, captionResult.ProviderAssetId], musicSfxResult.ProviderAssetId), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Render, renderResult.ProviderAssetId, null,
                 JsonSerializer.Serialize(new { durationSeconds = renderResult.Duration.TotalSeconds }), cancellationToken);
+            await AddCostAsync(db, job.VideoProject, "Render", renderResult.ProviderAssetId,
+                (decimal)renderResult.Duration.TotalSeconds, CostRates.RenderPerSecondUsd, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Qa, cancellationToken);
 
             var qaResult = await qa.EvaluateAsync(new QaRequest(scriptResult.Title, scriptResult.Script, renderResult.ProviderAssetId), cancellationToken);
@@ -138,10 +150,42 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    private static async Task AddCostAsync(YoutubeStudioDbContext db, VideoProject project, string stage,
+        string provider, decimal units, decimal unitCostUsd, CancellationToken cancellationToken)
+    {
+        var normalizedUnits = Math.Round(units, 4);
+        var total = Math.Round(normalizedUnits * unitCostUsd, 6);
+        db.ProductionCosts.Add(new ProductionCost
+        {
+            VideoProjectId = project.Id,
+            Stage = stage,
+            Provider = string.IsNullOrWhiteSpace(provider) ? stage.ToLowerInvariant() : provider,
+            Units = normalizedUnits,
+            UnitCostUsd = unitCostUsd,
+            TotalCostUsd = total
+        });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private static async Task SaveAsync(YoutubeStudioDbContext db, ProductionJob job, CancellationToken cancellationToken)
     {
         job.UpdatedAtUtc = DateTime.UtcNow;
         job.VideoProject.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Default per-stage unit costs (USD) for the development/placeholder providers.
+    /// Real providers should record their own metered costs; these values keep the
+    /// cost-per-video calculation populated in the MVP.
+    /// </summary>
+    private static class CostRates
+    {
+        public const decimal VoicePerSecondUsd = 0.0004m;
+        public const decimal VisualPerSceneUsd = 0.02m;
+        public const decimal MusicSfxPerSecondUsd = 0.0002m;
+        public const decimal CaptionsPerVideoUsd = 0.01m;
+        public const decimal ThumbnailPerCandidateUsd = 0.03m;
+        public const decimal RenderPerSecondUsd = 0.0006m;
     }
 }
