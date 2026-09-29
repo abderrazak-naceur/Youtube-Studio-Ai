@@ -53,21 +53,21 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
 
         try
         {
-            var researchResult = await research.ResearchAsync(new ResearchRequest(job.VideoProject.Prompt), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Research, "research", researchResult.Summary,
-                JsonSerializer.Serialize(new { sources = researchResult.Sources }), cancellationToken);
+            // Resume-safe: if an artifact for a stage already exists (e.g. a previous run
+            // failed later), reuse it instead of calling the provider again. This avoids
+            // duplicating paid external operations on retry (SYSTEM-ARCHITECTURE §8).
+            var researchResult = await ReuseResearchOrGenerateAsync(db, job.VideoProject, research, cancellationToken);
+            await MarkStageAsync(db, job, "Research", cancellationToken);
 
-            var scriptResult = await script.GenerateScriptAsync(new ScriptRequest(job.VideoProject.Prompt, researchResult.Summary), cancellationToken);
+            var scriptResult = await ReuseScriptOrGenerateAsync(db, job.VideoProject, script, researchResult, cancellationToken);
             job.VideoProject.Title = scriptResult.Title;
             job.VideoProject.Script = scriptResult.Script;
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Script, "script", scriptResult.Script,
-                JsonSerializer.Serialize(new { title = scriptResult.Title }), cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Scripted, cancellationToken);
+            await MarkStageAsync(db, job, "Script", cancellationToken);
 
-            var planResult = await scenePlan.CreateScenePlanAsync(new ScenePlanRequest(scriptResult.Title, scriptResult.Script), cancellationToken);
-            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.ScenePlan, "scene-plan",
-                JsonSerializer.Serialize(planResult.Scenes), null, cancellationToken);
+            var planResult = await ReuseScenePlanOrGenerateAsync(db, job.VideoProject, scenePlan, scriptResult, cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Planned, cancellationToken);
+            await MarkStageAsync(db, job, "ScenePlan", cancellationToken);
 
             await SetStageAsync(db, job, VideoProjectStatus.Producing, cancellationToken);
 
@@ -124,6 +124,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 JsonSerializer.Serialize(new { durationSeconds = renderResult.Duration.TotalSeconds }), cancellationToken);
             await AddCostAsync(db, job.VideoProject, "Render", renderResult.ProviderAssetId,
                 (decimal)renderResult.Duration.TotalSeconds, CostRates.RenderPerSecondUsd, cancellationToken);
+            await MarkStageAsync(db, job, "Render", cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Qa, cancellationToken);
 
             var qaResult = await qa.EvaluateAsync(new QaRequest(
@@ -142,6 +143,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
 
             // The automated pipeline stops at the human quality gate. Final export
             // to Completed only happens through an explicit approval decision.
+            job.LastCompletedStage = "Qa";
             job.Status = ProductionJobStatus.Succeeded;
             job.VideoProject.Status = VideoProjectStatus.AwaitingApproval;
             job.Error = null;
@@ -161,6 +163,94 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
     {
         job.VideoProject.Status = status;
         await SaveAsync(db, job, cancellationToken);
+    }
+
+    private static async Task MarkStageAsync(YoutubeStudioDbContext db, ProductionJob job, string stage, CancellationToken cancellationToken)
+    {
+        job.LastCompletedStage = stage;
+        await SaveAsync(db, job, cancellationToken);
+    }
+
+    private static async Task<ResearchResult> ReuseResearchOrGenerateAsync(
+        YoutubeStudioDbContext db, VideoProject project, IResearchProvider research, CancellationToken cancellationToken)
+    {
+        var existing = await LatestArtifactAsync(db, project.Id, ProductionArtifactType.Research, cancellationToken);
+        if (existing is not null && !string.IsNullOrWhiteSpace(existing.Content))
+        {
+            var sources = TryReadStringArray(existing.MetadataJson, "sources");
+            return new ResearchResult(existing.Content, sources);
+        }
+
+        var result = await research.ResearchAsync(new ResearchRequest(project.Prompt), cancellationToken);
+        await AddArtifactAsync(db, project, ProductionArtifactType.Research, "research", result.Summary,
+            JsonSerializer.Serialize(new { sources = result.Sources }), cancellationToken);
+        return result;
+    }
+
+    private static async Task<ScriptResult> ReuseScriptOrGenerateAsync(
+        YoutubeStudioDbContext db, VideoProject project, IScriptProvider script, ResearchResult research, CancellationToken cancellationToken)
+    {
+        var existing = await LatestArtifactAsync(db, project.Id, ProductionArtifactType.Script, cancellationToken);
+        if (existing is not null && !string.IsNullOrWhiteSpace(existing.Content))
+        {
+            var title = TryReadString(existing.MetadataJson, "title") ?? project.Title ?? project.Prompt;
+            return new ScriptResult(title, existing.Content);
+        }
+
+        var result = await script.GenerateScriptAsync(new ScriptRequest(project.Prompt, research.Summary), cancellationToken);
+        await AddArtifactAsync(db, project, ProductionArtifactType.Script, "script", result.Script,
+            JsonSerializer.Serialize(new { title = result.Title }), cancellationToken);
+        return result;
+    }
+
+    private static async Task<ScenePlanResult> ReuseScenePlanOrGenerateAsync(
+        YoutubeStudioDbContext db, VideoProject project, IScenePlanProvider scenePlan, ScriptResult script, CancellationToken cancellationToken)
+    {
+        var existing = await LatestArtifactAsync(db, project.Id, ProductionArtifactType.ScenePlan, cancellationToken);
+        if (existing is not null && !string.IsNullOrWhiteSpace(existing.Content))
+        {
+            try
+            {
+                var scenes = JsonSerializer.Deserialize<List<ScenePlanItem>>(existing.Content);
+                if (scenes is { Count: > 0 }) return new ScenePlanResult(scenes);
+            }
+            catch (JsonException) { /* fall through to regenerate */ }
+        }
+
+        var result = await scenePlan.CreateScenePlanAsync(new ScenePlanRequest(script.Title, script.Script), cancellationToken);
+        await AddArtifactAsync(db, project, ProductionArtifactType.ScenePlan, "scene-plan",
+            JsonSerializer.Serialize(result.Scenes), null, cancellationToken);
+        return result;
+    }
+
+    private static Task<ProductionArtifact?> LatestArtifactAsync(
+        YoutubeStudioDbContext db, Guid projectId, ProductionArtifactType type, CancellationToken cancellationToken) =>
+        db.ProductionArtifacts.AsNoTracking()
+            .Where(x => x.VideoProjectId == projectId && x.Type == type)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    private static string? TryReadString(string? json, string property)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty(property, out var value) ? value.GetString() : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private static IReadOnlyList<string> TryReadStringArray(string? json, string property)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty(property, out var value) || value.ValueKind != JsonValueKind.Array) return [];
+            return value.EnumerateArray().Select(x => x.GetString() ?? string.Empty).Where(x => x.Length > 0).ToList();
+        }
+        catch (JsonException) { return []; }
     }
 
     private static async Task AddArtifactAsync(YoutubeStudioDbContext db, VideoProject project, ProductionArtifactType type,

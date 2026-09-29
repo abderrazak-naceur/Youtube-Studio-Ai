@@ -224,8 +224,10 @@ jobs:
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
           test "$(jq -r '.status' <<<"$approve_response")" = "Completed"
 
-          final_status=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id | jq -r '.status')
-          test "$final_status" = "Completed"
+          final_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id)
+          test "$(jq -r '.status' <<<"$final_response")" = "Completed"
+          # Resume tracking: the job records the last completed stage.
+          test "$(jq -r '.latestJob.lastCompletedStage' <<<"$final_response")" = "Qa"
 
           artifacts_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
           artifact_count=$(jq 'length' <<<"$artifacts_response")
