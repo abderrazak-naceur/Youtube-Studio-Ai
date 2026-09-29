@@ -101,6 +101,52 @@ public sealed class WorkspaceChannelControllerTests
         Assert.Equal("Only YouTube channels are supported in the MVP.", problem.Detail);
     }
 
+    [Fact]
+    public async Task Update_channel_profile_persists_niche_audience_language_goals()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Studio" };
+        var channel = new Channel { WorkspaceId = workspace.Id, Name = "AI Channel", Platform = "youtube" };
+        db.Workspaces.Add(workspace);
+        db.Channels.Add(channel);
+        await db.SaveChangesAsync();
+
+        var controller = new ChannelsController(db, new StubWorkspaceAccess()).WithUser();
+        var result = await controller.UpdateProfile(
+            channel.Id,
+            new UpdateChannelProfileRequest(workspace.Id, null, "AI tools", "Creators", "it", "Grow to 100k"),
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<ChannelResponse>(ok.Value);
+        Assert.Equal("AI tools", response.Niche);
+        Assert.Equal("Creators", response.Audience);
+        Assert.Equal("it", response.Language);
+        Assert.Equal("Grow to 100k", response.Goals);
+
+        var persisted = await db.Channels.SingleAsync(x => x.Id == channel.Id);
+        Assert.Equal("AI tools", persisted.Niche);
+    }
+
+    [Fact]
+    public async Task Update_channel_profile_returns_not_found_for_other_workspace()
+    {
+        await using var db = CreateDb();
+        var workspace = new Workspace { Name = "Studio" };
+        var channel = new Channel { WorkspaceId = workspace.Id, Name = "AI Channel", Platform = "youtube" };
+        db.Workspaces.Add(workspace);
+        db.Channels.Add(channel);
+        await db.SaveChangesAsync();
+
+        var controller = new ChannelsController(db, new StubWorkspaceAccess()).WithUser();
+        var result = await controller.UpdateProfile(
+            channel.Id,
+            new UpdateChannelProfileRequest(Guid.NewGuid(), null, "x", null, null, null),
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
     private static YoutubeStudioDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<YoutubeStudioDbContext>()

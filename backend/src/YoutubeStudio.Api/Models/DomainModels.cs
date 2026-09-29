@@ -20,6 +20,19 @@ public sealed class Channel : Entity
     public required string Name { get; set; }
     public string Platform { get; set; } = "youtube";
     public string? ExternalChannelId { get; set; }
+
+    /// <summary>Content niche/topic focus (e.g. "AI tools for creators").</summary>
+    public string? Niche { get; set; }
+
+    /// <summary>Target audience description.</summary>
+    public string? Audience { get; set; }
+
+    /// <summary>Primary content language (BCP-47, e.g. "en").</summary>
+    public string Language { get; set; } = "en";
+
+    /// <summary>Strategic goals for the channel.</summary>
+    public string? Goals { get; set; }
+
     public Workspace Workspace { get; set; } = null!;
 }
 

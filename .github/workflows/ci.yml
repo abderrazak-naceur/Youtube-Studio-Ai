@@ -86,6 +86,7 @@ jobs:
             '20260929201202_AddUsersAndMemberships'
             '20260929205426_AddJobIdempotencyKey'
             '20260929205935_AddArtifactVersion'
+            '20260929210712_AddChannelProfile'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
