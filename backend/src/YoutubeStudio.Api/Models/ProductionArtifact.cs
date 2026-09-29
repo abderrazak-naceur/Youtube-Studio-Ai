@@ -11,7 +11,8 @@ public enum ProductionArtifactType
     Captions,
     Thumbnail,
     Render,
-    Qa
+    Qa,
+    Approval
 }
 
 public sealed class ProductionArtifact : Entity

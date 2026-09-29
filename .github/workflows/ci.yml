@@ -163,12 +163,12 @@ jobs:
             -X POST \
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/start >/dev/null
 
-          completed=false
+          awaiting=false
           for attempt in {1..60}; do
             status_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id)
             status=$(jq -r '.status' <<<"$status_response")
-            if [ "$status" = "Completed" ]; then
-              completed=true
+            if [ "$status" = "AwaitingApproval" ]; then
+              awaiting=true
               break
             fi
             if [ "$status" = "Failed" ]; then
@@ -179,13 +179,23 @@ jobs:
             sleep 1
           done
 
-          test "$completed" = true
+          test "$awaiting" = true
+
+          # Human quality gate: the project must not be Completed until it is approved.
+          approve_response=$(curl --silent --fail \
+            -H 'Content-Type: application/json' \
+            -d '{"reviewer":"ci-e2e","notes":"Automated end-to-end approval."}' \
+            http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
+          test "$(jq -r '.status' <<<"$approve_response")" = "Completed"
+
+          final_status=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id | jq -r '.status')
+          test "$final_status" = "Completed"
 
           artifacts_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
           artifact_count=$(jq 'length' <<<"$artifacts_response")
-          test "$artifact_count" -ge 10
+          test "$artifact_count" -ge 11
 
-          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Render Qa; do
+          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Render Qa Approval; do
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
       - name: Restore backend tests

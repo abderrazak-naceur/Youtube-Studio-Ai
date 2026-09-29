@@ -9,7 +9,9 @@ public enum VideoProjectStatus
     Producing,
     Rendering,
     Qa,
+    AwaitingApproval,
     Completed,
+    Rejected,
     Failed
 }
 

@@ -108,8 +108,10 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa, "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
             if (!qaResult.Passed) throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
 
+            // The automated pipeline stops at the human quality gate. Final export
+            // to Completed only happens through an explicit approval decision.
             job.Status = ProductionJobStatus.Succeeded;
-            job.VideoProject.Status = VideoProjectStatus.Completed;
+            job.VideoProject.Status = VideoProjectStatus.AwaitingApproval;
             job.Error = null;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
