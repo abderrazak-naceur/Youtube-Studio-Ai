@@ -32,6 +32,7 @@ public sealed class VideoArtifactsController(YoutubeStudioDbContext db, IWorkspa
             .Select(x => new ProductionArtifactResponse(
                 x.Id,
                 x.Type.ToString(),
+                x.Version,
                 x.ProviderAssetId,
                 x.Content,
                 x.MetadataJson,
@@ -45,6 +46,7 @@ public sealed class VideoArtifactsController(YoutubeStudioDbContext db, IWorkspa
 public sealed record ProductionArtifactResponse(
     Guid Id,
     string Type,
+    int Version,
     string ProviderAssetId,
     string? Content,
     string? MetadataJson,

@@ -112,6 +112,7 @@ public sealed class VideoProjectsController(
         {
             VideoProjectId = project.Id,
             Type = ProductionArtifactType.ScenePlan,
+            Version = await db.NextVersionAsync(project.Id, ProductionArtifactType.ScenePlan, cancellationToken),
             ProviderAssetId = "scene-plan",
             Content = JsonSerializer.Serialize(result.Scenes),
             MetadataJson = JsonSerializer.Serialize(new { sceneCount = result.Scenes.Count })

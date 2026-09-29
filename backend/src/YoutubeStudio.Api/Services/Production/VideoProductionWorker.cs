@@ -256,7 +256,20 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
     private static async Task AddArtifactAsync(YoutubeStudioDbContext db, VideoProject project, ProductionArtifactType type,
         string providerAssetId, string? content, string? metadataJson, CancellationToken cancellationToken)
     {
-        db.ProductionArtifacts.Add(new ProductionArtifact { VideoProjectId = project.Id, Type = type, ProviderAssetId = providerAssetId, Content = content, MetadataJson = metadataJson });
+        var nextVersion = await db.ProductionArtifacts
+            .Where(x => x.VideoProjectId == project.Id && x.Type == type)
+            .Select(x => (int?)x.Version)
+            .MaxAsync(cancellationToken) ?? 0;
+
+        db.ProductionArtifacts.Add(new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = type,
+            Version = nextVersion + 1,
+            ProviderAssetId = providerAssetId,
+            Content = content,
+            MetadataJson = metadataJson
+        });
         await db.SaveChangesAsync(cancellationToken);
     }
 

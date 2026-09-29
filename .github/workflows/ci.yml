@@ -85,6 +85,7 @@ jobs:
             '20260929200054_AddAiDisclosureFlag'
             '20260929201202_AddUsersAndMemberships'
             '20260929205426_AddJobIdempotencyKey'
+            '20260929205935_AddArtifactVersion'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -237,6 +238,9 @@ jobs:
           for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Metadata Render Qa Approval; do
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
+
+          # Versioning: every artifact carries a positive version number.
+          jq -e 'all(.[]; .version >= 1)' <<<"$artifacts_response" >/dev/null
 
           # Asset provenance: media assets must carry rights/provenance metadata.
           voice_metadata=$(jq -r '.[] | select(.type == "Voice") | .metadataJson' <<<"$artifacts_response")
