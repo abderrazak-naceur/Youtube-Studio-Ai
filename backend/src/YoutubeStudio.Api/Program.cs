@@ -8,6 +8,7 @@ using YoutubeStudio.Api.Services.Ai;
 using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Production;
 using YoutubeStudio.Api.Services.Providers;
+using YoutubeStudio.Api.Services.Resilience;
 using YoutubeStudio.Api.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,6 +70,7 @@ builder.Configuration.GetSection(ScriptProviderOptions.SectionName).Bind(scriptO
 builder.Services.AddSingleton(scriptOptions);
 builder.Services.AddHttpClient("script-provider");
 builder.Services.AddScoped<PlaceholderScriptProvider>();
+builder.Services.AddSingleton(new CircuitBreaker(failureThreshold: 3, openDuration: TimeSpan.FromSeconds(30)));
 builder.Services.AddScoped<IScriptProvider, HttpScriptProvider>();
 builder.Services.AddScoped<IScenePlanProvider, PlaceholderScenePlanProvider>();
 builder.Services.AddScoped<IVoiceProvider, PlaceholderVoiceProvider>();

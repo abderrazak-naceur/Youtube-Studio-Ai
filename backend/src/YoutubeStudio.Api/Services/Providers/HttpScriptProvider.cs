@@ -27,6 +27,7 @@ public sealed class HttpScriptProvider(
     IHttpClientFactory httpClientFactory,
     ScriptProviderOptions options,
     PlaceholderScriptProvider fallback,
+    CircuitBreaker circuitBreaker,
     ILogger<HttpScriptProvider> logger) : IScriptProvider
 {
     public async Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken)
@@ -46,16 +47,19 @@ public sealed class HttpScriptProvider(
                 }
             };
 
-            // Retry transient failures (network errors, 5xx, timeouts) with backoff.
-            var content = await ResiliencePolicy.ExecuteAsync(async attemptToken =>
-            {
-                var client = httpClientFactory.CreateClient("script-provider");
-                client.DefaultRequestHeaders.Authorization = new("Bearer", options.ApiKey);
-                using var response = await client.PostAsJsonAsync(options.Endpoint, payload, attemptToken);
-                response.EnsureSuccessStatusCode();
-                var body = await response.Content.ReadFromJsonAsync<JsonElement>(attemptToken);
-                return body.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
-            }, IsTransient, ResilienceOptions.Default, cancellationToken);
+            // Circuit breaker short-circuits when the provider is repeatedly failing; inside it,
+            // transient failures (network errors, 5xx, timeouts) are retried with backoff.
+            var content = await circuitBreaker.ExecuteAsync(
+                ct => ResiliencePolicy.ExecuteAsync(async attemptToken =>
+                {
+                    var client = httpClientFactory.CreateClient("script-provider");
+                    client.DefaultRequestHeaders.Authorization = new("Bearer", options.ApiKey);
+                    using var response = await client.PostAsJsonAsync(options.Endpoint, payload, attemptToken);
+                    response.EnsureSuccessStatusCode();
+                    var body = await response.Content.ReadFromJsonAsync<JsonElement>(attemptToken);
+                    return body.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+                }, IsTransient, ResilienceOptions.Default, ct),
+                cancellationToken);
 
             if (string.IsNullOrWhiteSpace(content))
                 return await fallback.GenerateScriptAsync(request, cancellationToken);
@@ -65,10 +69,10 @@ public sealed class HttpScriptProvider(
                 : request.Prompt.Trim()[..120].TrimEnd() + "…";
             return new ScriptResult(title, content.Trim());
         }
-        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException or InvalidOperationException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException or InvalidOperationException or CircuitOpenException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            // A provider failure (after retries) must not break production: fall back.
-            logger.LogWarning(exception, "HTTP script provider failed after retries; falling back to placeholder.");
+            // A provider failure (after retries) or an open circuit must not break production.
+            logger.LogWarning(exception, "HTTP script provider unavailable; falling back to placeholder.");
             return await fallback.GenerateScriptAsync(request, cancellationToken);
         }
     }
