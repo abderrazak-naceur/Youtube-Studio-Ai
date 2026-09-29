@@ -207,6 +207,11 @@ jobs:
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
 
+          # Asset provenance: media assets must carry rights/provenance metadata.
+          voice_metadata=$(jq -r '.[] | select(.type == "Voice") | .metadataJson' <<<"$artifacts_response")
+          jq -e '.provenance.rightsStatus != null' <<<"$voice_metadata" >/dev/null
+          jq -e '(.provenance.contentHash | length) > 0' <<<"$voice_metadata" >/dev/null
+
           # Cost tracking: every produced video must leave measurable per-stage cost data.
           costs_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/costs)
           jq -e '.totalCostUsd > 0' <<<"$costs_response" >/dev/null

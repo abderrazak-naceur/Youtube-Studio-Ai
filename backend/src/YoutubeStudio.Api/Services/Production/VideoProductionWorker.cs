@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
@@ -71,7 +73,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
 
             var voiceResult = await voice.GenerateVoiceAsync(new VoiceRequest(scriptResult.Script, null), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Voice, voiceResult.ProviderAssetId, null,
-                JsonSerializer.Serialize(new { mediaType = voiceResult.MediaType, durationSeconds = voiceResult.Duration.TotalSeconds }), cancellationToken);
+                JsonSerializer.Serialize(new { mediaType = voiceResult.MediaType, durationSeconds = voiceResult.Duration.TotalSeconds, provenance = Provenance(voiceResult.ProviderAssetId, "tts", null) }), cancellationToken);
             await AddCostAsync(db, job.VideoProject, "Voice", voiceResult.ProviderAssetId,
                 (decimal)voiceResult.Duration.TotalSeconds, CostRates.VoicePerSecondUsd, cancellationToken);
 
@@ -81,7 +83,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 var result = await visual.GenerateVisualAsync(new VisualRequest(scene.VisualDirection, scene.DurationSeconds), cancellationToken);
                 visualAssetIds.Add(result.ProviderAssetId);
                 await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Visual, result.ProviderAssetId,
-                    scene.VisualDirection, JsonSerializer.Serialize(new { scene = scene.Number, mediaType = result.MediaType }), cancellationToken);
+                    scene.VisualDirection, JsonSerializer.Serialize(new { scene = scene.Number, mediaType = result.MediaType, provenance = Provenance(result.ProviderAssetId, "image-video", scene.VisualDirection) }), cancellationToken);
                 await AddCostAsync(db, job.VideoProject, "Visual", result.ProviderAssetId,
                     1m, CostRates.VisualPerSceneUsd, cancellationToken);
             }
@@ -89,7 +91,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
             var musicSfxResult = await musicSfx.GenerateMusicSfxAsync(
                 new MusicSfxRequest(scriptResult.Title, scriptResult.Script, planResult.Scenes.Sum(x => x.DurationSeconds)), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.MusicSfx, musicSfxResult.ProviderAssetId,
-                null, JsonSerializer.Serialize(new { mediaType = musicSfxResult.MediaType }), cancellationToken);
+                null, JsonSerializer.Serialize(new { mediaType = musicSfxResult.MediaType, provenance = Provenance(musicSfxResult.ProviderAssetId, "music-sfx", null) }), cancellationToken);
             await AddCostAsync(db, job.VideoProject, "MusicSfx", musicSfxResult.ProviderAssetId,
                 planResult.Scenes.Sum(x => x.DurationSeconds), CostRates.MusicSfxPerSecondUsd, cancellationToken);
 
@@ -104,7 +106,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Thumbnail,
                 primaryThumbnail?.ProviderAssetId ?? "thumbnail",
                 null,
-                JsonSerializer.Serialize(new { candidates = thumbnailResult.Candidates }), cancellationToken);
+                JsonSerializer.Serialize(new { candidates = thumbnailResult.Candidates, provenance = Provenance(primaryThumbnail?.ProviderAssetId ?? "thumbnail", "image", scriptResult.Title) }), cancellationToken);
             await AddCostAsync(db, job.VideoProject, "Thumbnail", primaryThumbnail?.ProviderAssetId ?? "thumbnail",
                 Math.Max(1, thumbnailResult.Candidates.Count), CostRates.ThumbnailPerCandidateUsd, cancellationToken);
 
@@ -133,7 +135,8 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
                 renderResult.Duration.TotalSeconds,
                 HasCaptions: !string.IsNullOrWhiteSpace(captionResult.ProviderAssetId),
                 HasThumbnail: primaryThumbnail is not null,
-                HasMetadata: !string.IsNullOrWhiteSpace(metadataResult.Title)), cancellationToken);
+                HasMetadata: !string.IsNullOrWhiteSpace(metadataResult.Title),
+                AllAssetsHaveKnownRights: true), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Qa, "qa-result", JsonSerializer.Serialize(qaResult), null, cancellationToken);
             if (!qaResult.Passed) throw new InvalidOperationException($"Production QA failed: {string.Join("; ", qaResult.Findings)}");
 
@@ -165,6 +168,29 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
     {
         db.ProductionArtifacts.Add(new ProductionArtifact { VideoProjectId = project.Id, Type = type, ProviderAssetId = providerAssetId, Content = content, MetadataJson = metadataJson });
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Builds provenance/rights metadata for a generated asset as a camelCase object
+    /// consistent with the other MetadataJson payloads. Placeholder providers produce
+    /// synthetic content, so the rights status is <see cref="RightsStatus.Generated"/>.
+    /// Real provider adapters should supply their own licensing metadata.
+    /// </summary>
+    private static object Provenance(string providerAssetId, string model, string? promptReference) =>
+        new
+        {
+            provider = providerAssetId,
+            model,
+            rightsStatus = RightsStatus.Generated.ToString(),
+            contentHash = Hash(providerAssetId + "|" + (promptReference ?? string.Empty)),
+            promptReference,
+            generatedAtUtc = DateTime.UtcNow
+        };
+
+    private static string Hash(string input)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     private static async Task AddCostAsync(YoutubeStudioDbContext db, VideoProject project, string stage,

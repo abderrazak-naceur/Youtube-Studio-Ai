@@ -145,6 +145,10 @@ public sealed class DefaultQaProvider : IQaProvider
         if (!request.HasMetadata)
             findings.Add("Publish metadata is missing.");
 
+        // Rights/provenance gate: unknown rights must not be treated as safe (SECURITY §4).
+        if (!request.AllAssetsHaveKnownRights)
+            findings.Add("One or more assets have unknown rights/provenance status.");
+
         var words = (request.Script ?? string.Empty)
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (words.Length < 20)

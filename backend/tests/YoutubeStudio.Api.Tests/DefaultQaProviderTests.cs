@@ -67,6 +67,16 @@ public sealed class DefaultQaProviderTests
     }
 
     [Fact]
+    public async Task Fails_when_assets_have_unknown_rights()
+    {
+        var result = await new DefaultQaProvider().EvaluateAsync(
+            ValidRequest() with { AllAssetsHaveKnownRights = false }, CancellationToken.None);
+
+        Assert.False(result.Passed);
+        Assert.Contains("One or more assets have unknown rights/provenance status.", result.Findings);
+    }
+
+    [Fact]
     public async Task Fails_when_no_scenes()
     {
         var result = await new DefaultQaProvider().EvaluateAsync(ValidRequest() with { SceneCount = 0 }, CancellationToken.None);
