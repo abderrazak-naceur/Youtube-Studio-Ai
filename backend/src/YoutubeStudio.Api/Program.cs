@@ -8,6 +8,7 @@ using YoutubeStudio.Api.Services.Ai;
 using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Production;
 using YoutubeStudio.Api.Services.Providers;
+using YoutubeStudio.Api.Services.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,11 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 builder.Services.AddSingleton<IModelRouter, ModelRouter>();
 builder.Services.AddScoped<IProviderUsageLedger, ProviderUsageLedger>();
+
+var storageOptions = new ObjectStorageOptions();
+builder.Configuration.GetSection(ObjectStorageOptions.SectionName).Bind(storageOptions);
+builder.Services.AddSingleton(storageOptions);
+builder.Services.AddSingleton<IObjectStorage, LocalFileObjectStorage>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
 // Authentication / authorization.
