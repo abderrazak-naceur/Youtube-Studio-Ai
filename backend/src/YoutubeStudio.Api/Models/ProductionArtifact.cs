@@ -10,6 +10,7 @@ public enum ProductionArtifactType
     MusicSfx,
     Captions,
     Thumbnail,
+    Metadata,
     Render,
     Qa,
     Approval

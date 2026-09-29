@@ -199,9 +199,9 @@ jobs:
 
           artifacts_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
           artifact_count=$(jq 'length' <<<"$artifacts_response")
-          test "$artifact_count" -ge 11
+          test "$artifact_count" -ge 12
 
-          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Render Qa Approval; do
+          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Metadata Render Qa Approval; do
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
 

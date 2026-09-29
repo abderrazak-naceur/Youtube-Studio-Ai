@@ -27,6 +27,9 @@ public sealed record ThumbnailRequest(string Title, string Script, int Candidate
 public sealed record ThumbnailCandidate(string ProviderAssetId, string Headline, string MediaType);
 public sealed record ThumbnailResult(IReadOnlyList<ThumbnailCandidate> Candidates);
 
+public sealed record MetadataRequest(string Title, string Script, string Language);
+public sealed record MetadataResult(string Title, string Description, IReadOnlyList<string> Tags, string Category, string Language);
+
 public sealed record RenderRequest(IReadOnlyList<string> AssetIds, string? MusicAssetId);
 public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);
 
@@ -71,6 +74,11 @@ public interface ICaptionProvider
 public interface IThumbnailProvider
 {
     Task<ThumbnailResult> GenerateThumbnailsAsync(ThumbnailRequest request, CancellationToken cancellationToken);
+}
+
+public interface IMetadataProvider
+{
+    Task<MetadataResult> GenerateMetadataAsync(MetadataRequest request, CancellationToken cancellationToken);
 }
 
 public interface IRenderProvider
