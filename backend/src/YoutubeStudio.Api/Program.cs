@@ -33,6 +33,7 @@ if (string.IsNullOrWhiteSpace(jwtOptions.SigningKey))
 builder.Services.AddSingleton(jwtOptions);
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IWorkspaceAccess, WorkspaceAccess>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
