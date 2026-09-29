@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
+using YoutubeStudio.Api.Services;
 using YoutubeStudio.Api.Services.Production;
 using YoutubeStudio.Api.Services.Providers;
 
@@ -15,6 +16,7 @@ builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
         npgsqlOptions => npgsqlOptions.SetPostgresVersion(17, 0)));
 
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddHostedService<VideoProductionWorker>();
 
 builder.Services.AddScoped<IResearchProvider, PlaceholderResearchProvider>();

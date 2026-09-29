@@ -4,17 +4,19 @@ using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Controllers;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Tests;
 
 public sealed class ApprovalControllerTests
 {
+    private static ApprovalController CreateController(YoutubeStudioDbContext db) => new(db, new AuditService(db));
     [Fact]
     public async Task Approve_returns_not_found_for_missing_project()
     {
         await using var db = CreateDb();
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(Guid.NewGuid(), new ApprovalDecisionRequest("reviewer", null), CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
@@ -26,7 +28,7 @@ public sealed class ApprovalControllerTests
         await using var db = CreateDb();
         var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("  ", null), CancellationToken.None);
 
         Assert.IsType<ObjectResult>(result.Result);
@@ -38,7 +40,7 @@ public sealed class ApprovalControllerTests
         await using var db = CreateDb();
         var project = await AddProject(db, VideoProjectStatus.Producing);
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("reviewer", null), CancellationToken.None);
 
         var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
@@ -53,7 +55,7 @@ public sealed class ApprovalControllerTests
         AddQaArtifact(db, project.Id, passed: true);
         await db.SaveChangesAsync();
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("reviewer", null), CancellationToken.None);
 
         var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
@@ -70,7 +72,7 @@ public sealed class ApprovalControllerTests
         AddQaArtifact(db, project.Id, passed: false);
         await db.SaveChangesAsync();
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("reviewer", null), CancellationToken.None);
 
         var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
@@ -87,7 +89,7 @@ public sealed class ApprovalControllerTests
         AddQaArtifact(db, project.Id, passed: true);
         await db.SaveChangesAsync();
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great"), CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
@@ -99,6 +101,40 @@ public sealed class ApprovalControllerTests
         var approval = await db.ProductionArtifacts.SingleAsync(x => x.VideoProjectId == project.Id && x.Type == ProductionArtifactType.Approval);
         Assert.Contains("approved", approval.MetadataJson);
         Assert.Contains("Alex", approval.MetadataJson);
+    }
+
+    [Fact]
+    public async Task Approve_records_immutable_audit_event()
+    {
+        await using var db = CreateDb();
+        var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
+        AddRenderArtifact(db, project.Id);
+        AddQaArtifact(db, project.Id, passed: true);
+        await db.SaveChangesAsync();
+
+        await CreateController(db)
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great"), CancellationToken.None);
+
+        var auditEvent = await db.AuditEvents.SingleAsync(x => x.VideoProjectId == project.Id);
+        Assert.Equal("video.approved", auditEvent.Action);
+        Assert.Equal("Alex", auditEvent.Actor);
+        Assert.Equal(project.WorkspaceId, auditEvent.WorkspaceId);
+    }
+
+    [Fact]
+    public async Task Reject_records_audit_event()
+    {
+        await using var db = CreateDb();
+        var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
+        AddRenderArtifact(db, project.Id);
+        AddQaArtifact(db, project.Id, passed: true);
+        await db.SaveChangesAsync();
+
+        await CreateController(db)
+            .Reject(project.Id, new ApprovalDecisionRequest("Alex", "Thumbnail misleading"), CancellationToken.None);
+
+        var auditEvent = await db.AuditEvents.SingleAsync(x => x.VideoProjectId == project.Id);
+        Assert.Equal("video.rejected", auditEvent.Action);
     }
 
     [Fact]
@@ -129,7 +165,7 @@ public sealed class ApprovalControllerTests
         AddQaArtifact(db, project.Id, passed: true);
         await db.SaveChangesAsync();
 
-        await new ApprovalController(db)
+        await CreateController(db)
             .Approve(project.Id, new ApprovalDecisionRequest("Alex", null), CancellationToken.None);
 
         var genome = await db.ContentGenomes.SingleAsync(x => x.VideoProjectId == project.Id);
@@ -145,7 +181,7 @@ public sealed class ApprovalControllerTests
         await using var db = CreateDb();
         var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Reject(project.Id, new ApprovalDecisionRequest("reviewer", "  "), CancellationToken.None);
 
         Assert.IsType<ObjectResult>(result.Result);
@@ -160,7 +196,7 @@ public sealed class ApprovalControllerTests
         AddQaArtifact(db, project.Id, passed: true);
         await db.SaveChangesAsync();
 
-        var result = await new ApprovalController(db)
+        var result = await CreateController(db)
             .Reject(project.Id, new ApprovalDecisionRequest("Alex", "Thumbnail is misleading"), CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);

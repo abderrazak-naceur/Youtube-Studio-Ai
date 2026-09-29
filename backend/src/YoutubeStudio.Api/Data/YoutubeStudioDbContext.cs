@@ -20,6 +20,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<ProductionCost> ProductionCosts => Set<ProductionCost>();
     public DbSet<ContentGenome> ContentGenomes => Set<ContentGenome>();
     public DbSet<VideoOutcome> VideoOutcomes => Set<VideoOutcome>();
+    public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,5 +40,6 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
         modelBuilder.Entity<ProductionCost>(entity => { entity.ToTable("production_costs"); entity.HasKey(x => x.Id); entity.Property(x => x.Stage).HasMaxLength(50).IsRequired(); entity.Property(x => x.Provider).HasMaxLength(200).IsRequired(); entity.Property(x => x.Units).HasPrecision(18, 4); entity.Property(x => x.UnitCostUsd).HasPrecision(18, 6); entity.Property(x => x.TotalCostUsd).HasPrecision(18, 6); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.Stage }); });
         modelBuilder.Entity<ContentGenome>(entity => { entity.ToTable("content_genomes"); entity.HasKey(x => x.Id); entity.Property(x => x.Title).HasMaxLength(500).IsRequired(); entity.Property(x => x.AttributesJson).HasMaxLength(200000).IsRequired(); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => x.VideoProjectId).IsUnique(); });
         modelBuilder.Entity<VideoOutcome>(entity => { entity.ToTable("video_outcomes"); entity.HasKey(x => x.Id); entity.Property(x => x.Source).HasMaxLength(100).IsRequired(); entity.Property(x => x.EstimatedRevenueUsd).HasPrecision(18, 6); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.MeasuredAtUtc }); });
+        modelBuilder.Entity<AuditEvent>(entity => { entity.ToTable("audit_events"); entity.HasKey(x => x.Id); entity.Property(x => x.Action).HasMaxLength(100).IsRequired(); entity.Property(x => x.Actor).HasMaxLength(200).IsRequired(); entity.Property(x => x.DetailsJson).HasMaxLength(200000); entity.HasIndex(x => new { x.WorkspaceId, x.CreatedAtUtc }); entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc }); });
     }
 }

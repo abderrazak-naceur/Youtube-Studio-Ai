@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
@@ -14,7 +15,7 @@ namespace YoutubeStudio.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/video-projects")]
-public sealed class ApprovalController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService audit) : ControllerBase
 {
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<ApprovalResponse>> Approve(Guid id, ApprovalDecisionRequest request, CancellationToken cancellationToken)
@@ -54,6 +55,10 @@ public sealed class ApprovalController(YoutubeStudioDbContext db) : ControllerBa
 
         await ExtractContentGenomeAsync(project, artifacts, cancellationToken);
 
+        audit.Record("video.approved", request.Reviewer.Trim(),
+            workspaceId: project.WorkspaceId, videoProjectId: project.Id,
+            details: new { renderAssetId = renderArtifact.ProviderAssetId, notes = request.Notes?.Trim() });
+
         project.Status = VideoProjectStatus.Completed;
         project.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -87,6 +92,10 @@ public sealed class ApprovalController(YoutubeStudioDbContext db) : ControllerBa
                 decidedAtUtc = DateTime.UtcNow
             })
         });
+
+        audit.Record("video.rejected", request.Reviewer.Trim(),
+            workspaceId: project.WorkspaceId, videoProjectId: project.Id,
+            details: new { notes = request.Notes.Trim() });
 
         project.Status = VideoProjectStatus.Rejected;
         project.UpdatedAtUtc = DateTime.UtcNow;

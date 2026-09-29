@@ -80,6 +80,7 @@ jobs:
             '20260913220000_AddResearchBriefs'
             '20260929182331_AddProductionCosts'
             '20260929182818_AddContentGenomeAndOutcomes'
+            '20260929195120_AddAuditEvents'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -101,6 +102,7 @@ jobs:
             production_costs
             content_genomes
             video_outcomes
+            audit_events
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \
@@ -215,6 +217,10 @@ jobs:
           genome_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/content-genome)
           jq -e '.sceneCount >= 1' <<<"$genome_response" >/dev/null
           jq -e '.wordCount >= 1' <<<"$genome_response" >/dev/null
+
+          # Audit trail: the approval must leave an immutable audit record.
+          audit_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/audit)
+          jq -e 'any(.[]; .action == "video.approved")' <<<"$audit_response" >/dev/null
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests
