@@ -87,6 +87,7 @@ jobs:
             '20260929205426_AddJobIdempotencyKey'
             '20260929205935_AddArtifactVersion'
             '20260929210712_AddChannelProfile'
+            '20260929211100_AddChannelDna'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -98,6 +99,7 @@ jobs:
           expected_tables=(
             users
             memberships
+            channel_dna
             workspaces
             video_projects
             production_jobs
