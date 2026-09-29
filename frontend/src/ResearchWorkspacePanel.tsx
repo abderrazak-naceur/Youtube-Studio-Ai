@@ -4,6 +4,7 @@ import { ResearchEvidencePanel } from './ResearchEvidencePanel';
 import { ResearchClaimsPanel } from './ResearchClaimsPanel';
 import { FactCheckPanel } from './FactCheckPanel';
 import { ResearchBriefPanel } from './ResearchBriefPanel';
+import { ContentDraftPanel } from './ContentDraftPanel';
 
 type Opportunity = { id: string; title: string };
 type ResearchProject = { id: string; opportunityId: string; status: string };
@@ -104,6 +105,7 @@ export function ResearchWorkspacePanel({ apiBase, workspaceId }: Props) {
       <ResearchClaimsPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} sources={sources} />
       <FactCheckPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} />
       <ResearchBriefPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} projectTitle={opportunityById.get(projects.find(project => project.id === selectedProjectId)?.opportunityId ?? '') ?? ''} sources={sources} onSaved={() => void loadProjects()} />
+      <ContentDraftPanel apiBase={apiBase} workspaceId={workspaceId} researchProjectId={selectedProjectId} onGenerated={() => void loadProjects()} />
     </>}
   </section>;
 }
