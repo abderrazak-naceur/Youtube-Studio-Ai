@@ -81,6 +81,7 @@ jobs:
             '20260929182331_AddProductionCosts'
             '20260929182818_AddContentGenomeAndOutcomes'
             '20260929195120_AddAuditEvents'
+            '20260929200054_AddAiDisclosureFlag'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -190,9 +191,17 @@ jobs:
           test "$awaiting" = true
 
           # Human quality gate: the project must not be Completed until it is approved.
+          # Approval without acknowledging the AI disclosure must be blocked.
+          blocked_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -d '{"reviewer":"ci-e2e","notes":"No disclosure ack."}' \
+            http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
+          test "$blocked_status" = "409"
+
+          # Approval must acknowledge the AI disclosure for synthetic content.
           approve_response=$(curl --silent --fail \
             -H 'Content-Type: application/json' \
-            -d '{"reviewer":"ci-e2e","notes":"Automated end-to-end approval."}' \
+            -d '{"reviewer":"ci-e2e","notes":"Automated end-to-end approval.","aiDisclosureAcknowledged":true}' \
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
           test "$(jq -r '.status' <<<"$approve_response")" = "Completed"
 

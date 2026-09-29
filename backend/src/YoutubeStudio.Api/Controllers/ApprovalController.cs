@@ -39,6 +39,11 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
         if (!QaPassed(artifacts))
             return Conflict("The project cannot be approved because automated QA did not pass.");
 
+        // AI disclosure gate (SECURITY-COMPLIANCE §5): synthetic content cannot be approved
+        // for export until the reviewer acknowledges the required AI disclosure.
+        if (project.RequiresAiDisclosure && !request.AiDisclosureAcknowledged)
+            return Conflict("This project contains AI-generated content and requires the AI disclosure to be acknowledged before approval.");
+
         db.ProductionArtifacts.Add(new ProductionArtifact
         {
             VideoProjectId = project.Id,
@@ -49,6 +54,8 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
             {
                 decision = "approved",
                 reviewer = request.Reviewer.Trim(),
+                aiDisclosureAcknowledged = request.AiDisclosureAcknowledged,
+                requiresAiDisclosure = project.RequiresAiDisclosure,
                 decidedAtUtc = DateTime.UtcNow
             })
         });
@@ -57,7 +64,7 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
 
         audit.Record("video.approved", request.Reviewer.Trim(),
             workspaceId: project.WorkspaceId, videoProjectId: project.Id,
-            details: new { renderAssetId = renderArtifact.ProviderAssetId, notes = request.Notes?.Trim() });
+            details: new { renderAssetId = renderArtifact.ProviderAssetId, notes = request.Notes?.Trim(), aiDisclosureAcknowledged = request.AiDisclosureAcknowledged });
 
         project.Status = VideoProjectStatus.Completed;
         project.UpdatedAtUtc = DateTime.UtcNow;
@@ -179,5 +186,5 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
     }
 }
 
-public sealed record ApprovalDecisionRequest(string Reviewer, string? Notes);
+public sealed record ApprovalDecisionRequest(string Reviewer, string? Notes, bool AiDisclosureAcknowledged = false);
 public sealed record ApprovalResponse(Guid VideoProjectId, string Status, string Decision, string Reviewer);

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YoutubeStudio.Api.Data;
@@ -11,9 +12,11 @@ using YoutubeStudio.Api.Data;
 namespace YoutubeStudio.Api.Migrations
 {
     [DbContext(typeof(YoutubeStudioDbContext))]
-    partial class YoutubeStudioDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929200054_AddAiDisclosureFlag")]
+    partial class AddAiDisclosureFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

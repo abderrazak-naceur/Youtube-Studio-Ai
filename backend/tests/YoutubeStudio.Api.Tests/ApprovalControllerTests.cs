@@ -81,6 +81,23 @@ public sealed class ApprovalControllerTests
     }
 
     [Fact]
+    public async Task Approve_is_blocked_when_ai_disclosure_not_acknowledged()
+    {
+        await using var db = CreateDb();
+        var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
+        AddRenderArtifact(db, project.Id);
+        AddQaArtifact(db, project.Id, passed: true);
+        await db.SaveChangesAsync();
+
+        var result = await CreateController(db)
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", null, AiDisclosureAcknowledged: false), CancellationToken.None);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Equal("This project contains AI-generated content and requires the AI disclosure to be acknowledged before approval.", conflict.Value);
+        Assert.Equal(VideoProjectStatus.AwaitingApproval, (await db.VideoProjects.SingleAsync(x => x.Id == project.Id)).Status);
+    }
+
+    [Fact]
     public async Task Approve_completes_project_and_records_approval_artifact()
     {
         await using var db = CreateDb();
@@ -90,7 +107,7 @@ public sealed class ApprovalControllerTests
         await db.SaveChangesAsync();
 
         var result = await CreateController(db)
-            .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great"), CancellationToken.None);
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great", AiDisclosureAcknowledged: true), CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsType<ApprovalResponse>(response.Value);
@@ -113,7 +130,7 @@ public sealed class ApprovalControllerTests
         await db.SaveChangesAsync();
 
         await CreateController(db)
-            .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great"), CancellationToken.None);
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", "Looks great", AiDisclosureAcknowledged: true), CancellationToken.None);
 
         var auditEvent = await db.AuditEvents.SingleAsync(x => x.VideoProjectId == project.Id);
         Assert.Equal("video.approved", auditEvent.Action);
@@ -166,7 +183,7 @@ public sealed class ApprovalControllerTests
         await db.SaveChangesAsync();
 
         await CreateController(db)
-            .Approve(project.Id, new ApprovalDecisionRequest("Alex", null), CancellationToken.None);
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", null, AiDisclosureAcknowledged: true), CancellationToken.None);
 
         var genome = await db.ContentGenomes.SingleAsync(x => x.VideoProjectId == project.Id);
         Assert.Equal(2, genome.SceneCount);
