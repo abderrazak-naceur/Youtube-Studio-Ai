@@ -42,7 +42,7 @@ The primary optimization target is **net business value per published video**, n
 
 ## Current status
 
-The repository has completed the **v0.1 MVP foundation / vertical slice**. The production loop is now verified in CI against PostgreSQL/pgvector, including Create → Start → Worker → persisted artifacts, backend tests and frontend build.
+The repository has completed the **v0.1 MVP foundation / vertical slice**, the **v0.2 Opportunity Engine** and the **v0.3 Research Engine** (projects, sources, evidence, verifiable claims and evidence-backed briefs). The production loop is verified in CI against PostgreSQL/pgvector, including Create → Start → Worker → persisted artifacts, backend tests and frontend build.
 
 The first objective was to prove a reliable production loop before adding large-scale automation or monetization features.
 
@@ -145,7 +145,7 @@ The project is executed **incrementally and in dependency order**. A release is 
 |---|---|---|
 | [x] | **v0.1** | Foundation + video creation vertical slice |
 | [x] | **v0.2** | Opportunity Engine |
-| [~] | **v0.3** | Research Engine — project and source workspace in progress |
+| [x] | **v0.3** | Research Engine — projects, sources, evidence, verifiable claims and evidence-backed briefs |
 | [ ] | **v0.4** | Fact Check |
 | [ ] | **v0.5** | Content Engine |
 | [ ] | **v0.6** | AI Provider Layer |
@@ -201,8 +201,8 @@ The project is executed **incrementally and in dependency order**. A release is 
 
 1. **[x] v0.1 — close end-to-end/DoD verification.**
 2. **[x] v0.2 — Opportunity Engine**: workspace-scoped opportunity CRUD, sorting, validation and dashboard integration are complete.
-3. **[~] v0.3 — Research Engine**: research projects and source storage are implemented; claims, verification and evidence-backed briefs remain.
-4. **[ ] v0.4+ — continue through the dependency chain toward v1.0.**
+3. **[x] v0.3 — Research Engine**: research projects, sources, evidence, verifiable claims (unverified/verified/disputed) and evidence-backed production briefs are implemented, tested and gated in CI.
+4. **[ ] v0.4 — Fact Check**: next in the dependency chain toward v1.0.
 
 > **Rule:** do not start unrelated 2027–2030 work while the MVP production loop is incomplete.
 
