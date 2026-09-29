@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using YoutubeStudio.Api.Services.Resilience;
 
 namespace YoutubeStudio.Api.Services.Providers;
 
@@ -35,9 +36,6 @@ public sealed class HttpScriptProvider(
 
         try
         {
-            var client = httpClientFactory.CreateClient("script-provider");
-            client.DefaultRequestHeaders.Authorization = new("Bearer", options.ApiKey);
-
             var payload = new
             {
                 model = options.Model,
@@ -48,15 +46,16 @@ public sealed class HttpScriptProvider(
                 }
             };
 
-            using var response = await client.PostAsJsonAsync(options.Endpoint, payload, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            var body = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var content = body
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+            // Retry transient failures (network errors, 5xx, timeouts) with backoff.
+            var content = await ResiliencePolicy.ExecuteAsync(async attemptToken =>
+            {
+                var client = httpClientFactory.CreateClient("script-provider");
+                client.DefaultRequestHeaders.Authorization = new("Bearer", options.ApiKey);
+                using var response = await client.PostAsJsonAsync(options.Endpoint, payload, attemptToken);
+                response.EnsureSuccessStatusCode();
+                var body = await response.Content.ReadFromJsonAsync<JsonElement>(attemptToken);
+                return body.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+            }, IsTransient, ResilienceOptions.Default, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(content))
                 return await fallback.GenerateScriptAsync(request, cancellationToken);
@@ -66,11 +65,19 @@ public sealed class HttpScriptProvider(
                 : request.Prompt.Trim()[..120].TrimEnd() + "…";
             return new ScriptResult(title, content.Trim());
         }
-        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException or InvalidOperationException)
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException or InvalidOperationException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            // A provider failure must not break production: fall back to the placeholder.
-            logger.LogWarning(exception, "HTTP script provider failed; falling back to placeholder.");
+            // A provider failure (after retries) must not break production: fall back.
+            logger.LogWarning(exception, "HTTP script provider failed after retries; falling back to placeholder.");
             return await fallback.GenerateScriptAsync(request, cancellationToken);
         }
     }
+
+    /// <summary>Network errors and 5xx responses are transient; 4xx are not.</summary>
+    private static bool IsTransient(Exception exception) => exception switch
+    {
+        HttpRequestException { StatusCode: null } => true, // connection-level failure
+        HttpRequestException http => (int?)http.StatusCode >= 500,
+        _ => false
+    };
 }
