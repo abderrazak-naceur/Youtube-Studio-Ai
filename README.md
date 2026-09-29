@@ -42,7 +42,7 @@ The primary optimization target is **net business value per published video**, n
 
 ## Current status
 
-The repository has completed the **v0.1 MVP foundation / vertical slice**, the **v0.2 Opportunity Engine**, the **v0.3 Research Engine** (projects, sources, evidence, verifiable claims and evidence-backed briefs), the **v0.4 Fact Check** compliance gate, the **v0.5 Content Engine** (editorial drafts from verified research) and the **v0.6 AI Provider Layer** (provider-agnostic model router). The production loop is verified in CI against PostgreSQL/pgvector, including Create → Start → Worker → persisted artifacts, backend tests and frontend build.
+The repository has completed the **v0.1 MVP foundation / vertical slice**, the **v0.2 Opportunity Engine**, the **v0.3 Research Engine** (projects, sources, evidence, verifiable claims and evidence-backed briefs), the **v0.4 Fact Check** compliance gate, the **v0.5 Content Engine** (editorial drafts from verified research), the **v0.6 AI Provider Layer** (provider-agnostic model router) and the **v0.7 Production Engine hardening** (retries, dead-lettering and idempotent artifacts). The production loop is verified in CI against PostgreSQL/pgvector, including Create → Start → Worker → persisted artifacts, backend tests and frontend build.
 
 The first objective was to prove a reliable production loop before adding large-scale automation or monetization features.
 
@@ -105,6 +105,7 @@ Legend: **[x] completed and verified**, **[~] implemented but verification/DoD s
 - Fact Check: per-project claim verdicts, evidence checks and high-risk human-review gate
 - Content Engine: editorial draft (angle, hook, outline, script, titles, thumbnails, description, chapters, metadata) from verified research
 - AI Provider Layer: provider-agnostic model router with per-task selection, default fallback and observable routing (API + dashboard panel)
+- Hardened production engine: bounded retries, dead-lettering, attempt/stage tracking and idempotent artifact writes
 - VideoProject model and API
 - Persistent production jobs
 - Video production job enqueue service
@@ -153,7 +154,7 @@ The project is executed **incrementally and in dependency order**. A release is 
 | [x] | **v0.4** | Fact Check — claim verdicts, evidence checks and high-risk human-review gate |
 | [x] | **v0.5** | Content Engine — angle, hook, outline, script, titles, thumbnails, description, chapters and metadata |
 | [x] | **v0.6** | AI Provider Layer — provider-agnostic model router with per-task selection and observable routing |
-| [ ] | **v0.7** | Production Engine hardening |
+| [x] | **v0.7** | Production Engine hardening — bounded retries, dead-lettering, attempt/stage tracking and idempotent artifacts |
 | [ ] | **v0.8** | Complete video pipeline |
 | [ ] | **v1.0** | MVP production loop |
 | [ ] | **v1.x** | YouTube publishing, analytics and learning loop |
@@ -209,7 +210,8 @@ The project is executed **incrementally and in dependency order**. A release is 
 4. **[x] v0.4 — Fact Check**: per-project fact-check runs score every claim (supported/unsupported/disputed/pending), flag high-risk domains (finance/health/legal/political) for human review and produce an overall verdict (passed/needs_review/failed) as a pre-publication compliance gate.
 5. **[x] v0.5 — Content Engine**: transforms verified research into an editorial draft (angle, hook, outline, script, title candidates, thumbnail concepts, description, chapters and metadata), gated behind a non-failed fact check and at least one verified claim.
 6. **[x] v0.6 — AI Provider Layer**: a provider-agnostic model router selects a provider per production task from configuration (falling back to the deterministic placeholder), records the decision and exposes the routing through a read-only API and dashboard panel — vendors stay replaceable behind the existing provider interfaces.
-7. **[ ] v0.7 — Production Engine hardening**: next in the dependency chain toward v1.0.
+7. **[x] v0.7 — Production Engine hardening**: the pipeline is extracted into a testable `ProductionPipeline` with bounded retries, dead-lettering after `Production:MaxAttempts`, attempt and last-completed-stage tracking, and idempotent artifact writes so retries never duplicate output (PROJECT-STUDY §23).
+8. **[ ] v0.8 — Complete video pipeline**: next in the dependency chain toward v1.0.
 
 > **Rule:** do not start unrelated 2027–2030 work while the MVP production loop is incomplete.
 

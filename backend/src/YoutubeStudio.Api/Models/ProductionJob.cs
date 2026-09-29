@@ -5,7 +5,8 @@ public enum ProductionJobStatus
     Queued,
     Running,
     Succeeded,
-    Failed
+    Failed,
+    DeadLettered
 }
 
 public sealed class ProductionJob : Entity
