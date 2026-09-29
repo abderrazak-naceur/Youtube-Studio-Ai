@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
 
@@ -51,6 +52,8 @@ public sealed class ApprovalController(YoutubeStudioDbContext db) : ControllerBa
             })
         });
 
+        await ExtractContentGenomeAsync(project, artifacts, cancellationToken);
+
         project.Status = VideoProjectStatus.Completed;
         project.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -90,6 +93,64 @@ public sealed class ApprovalController(YoutubeStudioDbContext db) : ControllerBa
         await db.SaveChangesAsync(cancellationToken);
 
         return Ok(new ApprovalResponse(project.Id, project.Status.ToString(), "rejected", request.Reviewer.Trim()));
+    }
+
+    private async Task ExtractContentGenomeAsync(VideoProject project, IReadOnlyList<ProductionArtifact> artifacts, CancellationToken cancellationToken)
+    {
+        // One genome per project. Re-approval after a prior extraction is a no-op.
+        if (await db.ContentGenomes.AnyAsync(x => x.VideoProjectId == project.Id, cancellationToken))
+            return;
+
+        var scriptArtifact = artifacts.FirstOrDefault(x => x.Type == ProductionArtifactType.Script);
+        var script = scriptArtifact?.Content ?? project.Script ?? string.Empty;
+
+        var scenePlanArtifact = artifacts.FirstOrDefault(x => x.Type == ProductionArtifactType.ScenePlan);
+        var scenes = ParseScenes(scenePlanArtifact?.Content);
+
+        var wordCount = string.IsNullOrWhiteSpace(script)
+            ? 0
+            : script.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+
+        var attributes = ExtractKeywords(script);
+
+        db.ContentGenomes.Add(new ContentGenome
+        {
+            VideoProjectId = project.Id,
+            Title = string.IsNullOrWhiteSpace(project.Title) ? project.Prompt.Trim() : project.Title.Trim(),
+            DurationSeconds = scenes.Sum(x => x.DurationSeconds),
+            SceneCount = scenes.Count,
+            WordCount = wordCount,
+            AttributesJson = JsonSerializer.Serialize(attributes)
+        });
+    }
+
+    private static List<ScenePlanItem> ParseScenes(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<ScenePlanItem>>(content) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static IReadOnlyList<string> ExtractKeywords(string script)
+    {
+        if (string.IsNullOrWhiteSpace(script)) return [];
+
+        return script
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(word => new string(word.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant())
+            .Where(word => word.Length >= 5)
+            .GroupBy(word => word)
+            .OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key)
+            .Take(10)
+            .Select(group => group.Key)
+            .ToList();
     }
 
     private static bool QaPassed(IReadOnlyList<ProductionArtifact> artifacts)

@@ -18,6 +18,8 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
     public DbSet<ProductionJob> ProductionJobs => Set<ProductionJob>();
     public DbSet<ProductionArtifact> ProductionArtifacts => Set<ProductionArtifact>();
     public DbSet<ProductionCost> ProductionCosts => Set<ProductionCost>();
+    public DbSet<ContentGenome> ContentGenomes => Set<ContentGenome>();
+    public DbSet<VideoOutcome> VideoOutcomes => Set<VideoOutcome>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,5 +37,7 @@ public sealed class YoutubeStudioDbContext(DbContextOptions<YoutubeStudioDbConte
         modelBuilder.Entity<ProductionJob>(entity => { entity.ToTable("production_jobs"); entity.HasKey(x => x.Id); entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.Property(x => x.Error).HasMaxLength(4000); entity.Property(x => x.LastCompletedStage).HasMaxLength(50); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.CreatedAtUtc }); });
         modelBuilder.Entity<ProductionArtifact>(entity => { entity.ToTable("production_artifacts"); entity.HasKey(x => x.Id); entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired(); entity.Property(x => x.ProviderAssetId).HasMaxLength(500).IsRequired(); entity.Property(x => x.Content).HasMaxLength(200000); entity.Property(x => x.MetadataJson).HasMaxLength(200000); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.Type }); });
         modelBuilder.Entity<ProductionCost>(entity => { entity.ToTable("production_costs"); entity.HasKey(x => x.Id); entity.Property(x => x.Stage).HasMaxLength(50).IsRequired(); entity.Property(x => x.Provider).HasMaxLength(200).IsRequired(); entity.Property(x => x.Units).HasPrecision(18, 4); entity.Property(x => x.UnitCostUsd).HasPrecision(18, 6); entity.Property(x => x.TotalCostUsd).HasPrecision(18, 6); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.Stage }); });
+        modelBuilder.Entity<ContentGenome>(entity => { entity.ToTable("content_genomes"); entity.HasKey(x => x.Id); entity.Property(x => x.Title).HasMaxLength(500).IsRequired(); entity.Property(x => x.AttributesJson).HasMaxLength(200000).IsRequired(); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => x.VideoProjectId).IsUnique(); });
+        modelBuilder.Entity<VideoOutcome>(entity => { entity.ToTable("video_outcomes"); entity.HasKey(x => x.Id); entity.Property(x => x.Source).HasMaxLength(100).IsRequired(); entity.Property(x => x.EstimatedRevenueUsd).HasPrecision(18, 6); entity.HasOne(x => x.VideoProject).WithMany().HasForeignKey(x => x.VideoProjectId).OnDelete(DeleteBehavior.Cascade); entity.HasIndex(x => new { x.VideoProjectId, x.MeasuredAtUtc }); });
     }
 }

@@ -102,6 +102,44 @@ public sealed class ApprovalControllerTests
     }
 
     [Fact]
+    public async Task Approve_extracts_content_genome()
+    {
+        await using var db = CreateDb();
+        var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
+        project.Script = "Artificial intelligence helps creators plan smarter videos consistently.";
+        db.ProductionArtifacts.Add(new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = ProductionArtifactType.Script,
+            ProviderAssetId = "script",
+            Content = "Artificial intelligence helps creators plan smarter videos consistently."
+        });
+        db.ProductionArtifacts.Add(new ProductionArtifact
+        {
+            VideoProjectId = project.Id,
+            Type = ProductionArtifactType.ScenePlan,
+            ProviderAssetId = "scene-plan",
+            Content = JsonSerializer.Serialize(new[]
+            {
+                new ScenePlanItem(1, "First", "Opening", 8),
+                new ScenePlanItem(2, "Second", "Middle", 12)
+            })
+        });
+        AddRenderArtifact(db, project.Id);
+        AddQaArtifact(db, project.Id, passed: true);
+        await db.SaveChangesAsync();
+
+        await new ApprovalController(db)
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", null), CancellationToken.None);
+
+        var genome = await db.ContentGenomes.SingleAsync(x => x.VideoProjectId == project.Id);
+        Assert.Equal(2, genome.SceneCount);
+        Assert.Equal(20, genome.DurationSeconds);
+        Assert.True(genome.WordCount >= 1);
+        Assert.Contains("artificial", genome.AttributesJson);
+    }
+
+    [Fact]
     public async Task Reject_requires_notes()
     {
         await using var db = CreateDb();

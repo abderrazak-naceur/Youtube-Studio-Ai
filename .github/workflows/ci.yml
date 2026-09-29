@@ -79,6 +79,7 @@ jobs:
             '20260912205000_AddResearchClaimProjectIndex'
             '20260913220000_AddResearchBriefs'
             '20260929182331_AddProductionCosts'
+            '20260929182818_AddContentGenomeAndOutcomes'
           )
           for migration in "${expected_migrations[@]}"; do
             grep -Fq "$migration" <<<"$migrations" || {
@@ -98,6 +99,8 @@ jobs:
             research_claims
             research_claim_evidence
             production_costs
+            content_genomes
+            video_outcomes
           )
           for table in "${expected_tables[@]}"; do
             actual=$(PGPASSWORD=postgres psql \
@@ -207,6 +210,11 @@ jobs:
           jq -e '.totalCostUsd > 0' <<<"$costs_response" >/dev/null
           jq -e '(.byStage | length) >= 1' <<<"$costs_response" >/dev/null
           jq -e 'any(.byStage[]; .stage == "Render")' <<<"$costs_response" >/dev/null
+
+          # Content Genome: approving a video extracts structured learning attributes.
+          genome_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/content-genome)
+          jq -e '.sceneCount >= 1' <<<"$genome_response" >/dev/null
+          jq -e '.wordCount >= 1' <<<"$genome_response" >/dev/null
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj
       - name: Run backend tests
