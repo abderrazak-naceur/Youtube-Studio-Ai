@@ -12,7 +12,7 @@ public sealed class ProductionCostsControllerTests
     public async Task Get_returns_not_found_for_missing_project()
     {
         await using var db = CreateDb();
-        var result = await new ProductionCostsController(db).Get(Guid.NewGuid(), CancellationToken.None);
+        var result = await new ProductionCostsController(db, new StubWorkspaceAccess()).WithUser().Get(Guid.NewGuid(), CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
     }
@@ -23,7 +23,7 @@ public sealed class ProductionCostsControllerTests
         await using var db = CreateDb();
         var project = await AddProject(db);
 
-        var result = await new ProductionCostsController(db).Get(project.Id, CancellationToken.None);
+        var result = await new ProductionCostsController(db, new StubWorkspaceAccess()).WithUser().Get(project.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var summary = Assert.IsType<ProductionCostSummaryResponse>(response.Value);
@@ -44,7 +44,7 @@ public sealed class ProductionCostsControllerTests
             new ProductionCost { VideoProjectId = project.Id, Stage = "Render", Provider = "placeholder-render", Units = 28m, UnitCostUsd = 0.0006m, TotalCostUsd = 0.0168m });
         await db.SaveChangesAsync();
 
-        var result = await new ProductionCostsController(db).Get(project.Id, CancellationToken.None);
+        var result = await new ProductionCostsController(db, new StubWorkspaceAccess()).WithUser().Get(project.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var summary = Assert.IsType<ProductionCostSummaryResponse>(response.Value);
@@ -67,7 +67,7 @@ public sealed class ProductionCostsControllerTests
             new ProductionCost { VideoProjectId = other.Id, Stage = "Voice", Provider = "p", Units = 5m, UnitCostUsd = 1m, TotalCostUsd = 5m });
         await db.SaveChangesAsync();
 
-        var result = await new ProductionCostsController(db).Get(project.Id, CancellationToken.None);
+        var result = await new ProductionCostsController(db, new StubWorkspaceAccess()).WithUser().Get(project.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var summary = Assert.IsType<ProductionCostSummaryResponse>(response.Value);

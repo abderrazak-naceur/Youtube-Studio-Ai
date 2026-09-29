@@ -12,7 +12,7 @@ public sealed class AuditControllerTests
     public async Task GetForProject_returns_not_found_for_missing_project()
     {
         await using var db = CreateDb();
-        var result = await new AuditController(db).GetForProject(Guid.NewGuid(), CancellationToken.None);
+        var result = await new AuditController(db, new StubWorkspaceAccess()).WithUser().GetForProject(Guid.NewGuid(), CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
     }
@@ -29,7 +29,7 @@ public sealed class AuditControllerTests
             new AuditEvent { VideoProjectId = other.Id, Action = "video.approved", Actor = "Sam", CreatedAtUtc = DateTime.UtcNow });
         await db.SaveChangesAsync();
 
-        var result = await new AuditController(db).GetForProject(project.Id, CancellationToken.None);
+        var result = await new AuditController(db, new StubWorkspaceAccess()).WithUser().GetForProject(project.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var events = Assert.IsAssignableFrom<IReadOnlyList<AuditEventResponse>>(response.Value);

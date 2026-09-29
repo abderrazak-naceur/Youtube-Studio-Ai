@@ -127,7 +127,7 @@ public sealed class ScenePlanControllerTests
     }
 
     private static VideoProjectsController CreateController(YoutubeStudioDbContext db, IScenePlanProvider provider) =>
-        new(db, new ProductionJobService(db), new PlaceholderScriptProvider(), provider);
+        new VideoProjectsController(db, new ProductionJobService(db), new PlaceholderScriptProvider(), new StubWorkspaceAccess(), provider).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

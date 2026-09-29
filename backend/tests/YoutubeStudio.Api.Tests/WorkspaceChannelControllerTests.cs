@@ -17,7 +17,7 @@ public sealed class WorkspaceChannelControllerTests
     public async Task Create_workspace_persists_trimmed_name()
     {
         await using var db = CreateDb();
-        var controller = new WorkspacesController(db);
+        var controller = new WorkspacesController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(
             new CreateWorkspaceRequest("  My workspace  "),
@@ -34,7 +34,7 @@ public sealed class WorkspaceChannelControllerTests
     public async Task Create_workspace_rejects_blank_name()
     {
         await using var db = CreateDb();
-        var controller = new WorkspacesController(db);
+        var controller = new WorkspacesController(db, new StubWorkspaceAccess()).WithUser();
 
         var result = await controller.Create(
             new CreateWorkspaceRequest("   "),

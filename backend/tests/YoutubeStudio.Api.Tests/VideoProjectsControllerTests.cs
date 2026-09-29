@@ -162,7 +162,7 @@ public sealed class VideoProjectsControllerTests
         db.VideoProjects.Add(project);
         await db.SaveChangesAsync();
 
-        var controller = new VideoProjectsController(db, new ProductionJobService(db), new EmptyScriptProvider());
+        var controller = new VideoProjectsController(db, new ProductionJobService(db), new EmptyScriptProvider(), new StubWorkspaceAccess()).WithUser();
         var result = await controller.GenerateScript(
             project.Id,
             new GenerateScriptRequest("Verified research context"),
@@ -194,7 +194,7 @@ public sealed class VideoProjectsControllerTests
         await db.SaveChangesAsync();
 
         var provider = new RecordingScriptProvider();
-        var controller = new VideoProjectsController(db, new ProductionJobService(db), provider);
+        var controller = new VideoProjectsController(db, new ProductionJobService(db), provider, new StubWorkspaceAccess()).WithUser();
         var result = await controller.GenerateScript(
             project.Id,
             new GenerateScriptRequest("Verified research context"),
@@ -274,7 +274,7 @@ public sealed class VideoProjectsControllerTests
     }
 
     private static VideoProjectsController CreateController(YoutubeStudioDbContext db) =>
-        new(db, new ProductionJobService(db), new PlaceholderScriptProvider());
+        new VideoProjectsController(db, new ProductionJobService(db), new PlaceholderScriptProvider(), new StubWorkspaceAccess()).WithUser();
 
     private static YoutubeStudioDbContext CreateDb()
     {

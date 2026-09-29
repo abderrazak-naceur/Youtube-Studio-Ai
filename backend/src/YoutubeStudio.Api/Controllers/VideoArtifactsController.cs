@@ -1,20 +1,28 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects/{videoProjectId:guid}/artifacts")]
-public sealed class VideoArtifactsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class VideoArtifactsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProductionArtifactResponse>>> GetAll(
         Guid videoProjectId,
         CancellationToken cancellationToken)
     {
-        var exists = await db.VideoProjects.AnyAsync(x => x.Id == videoProjectId, cancellationToken);
-        if (!exists)
+        var workspaceId = await db.VideoProjects.AsNoTracking()
+            .Where(x => x.Id == videoProjectId)
+            .Select(x => (Guid?)x.WorkspaceId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (workspaceId is null)
+            return NotFound();
+        if (await access.GetRoleAsync(User, workspaceId.Value, cancellationToken) is null)
             return NotFound();
 
         var artifacts = await db.ProductionArtifacts

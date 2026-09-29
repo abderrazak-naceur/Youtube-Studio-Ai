@@ -13,7 +13,7 @@ public sealed class ContentGenomeControllerTests
     public async Task Get_returns_not_found_for_missing_project()
     {
         await using var db = CreateDb();
-        var result = await new ContentGenomeController(db).Get(Guid.NewGuid(), CancellationToken.None);
+        var result = await new ContentGenomeController(db, new StubWorkspaceAccess()).WithUser().Get(Guid.NewGuid(), CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
     }
@@ -24,7 +24,7 @@ public sealed class ContentGenomeControllerTests
         await using var db = CreateDb();
         var project = await AddProject(db);
 
-        var result = await new ContentGenomeController(db).Get(project.Id, CancellationToken.None);
+        var result = await new ContentGenomeController(db, new StubWorkspaceAccess()).WithUser().Get(project.Id, CancellationToken.None);
 
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }
@@ -45,7 +45,7 @@ public sealed class ContentGenomeControllerTests
         });
         await db.SaveChangesAsync();
 
-        var result = await new ContentGenomeController(db).Get(project.Id, CancellationToken.None);
+        var result = await new ContentGenomeController(db, new StubWorkspaceAccess()).WithUser().Get(project.Id, CancellationToken.None);
 
         var response = Assert.IsType<OkObjectResult>(result.Result);
         var genome = Assert.IsType<ContentGenomeResponse>(response.Value);

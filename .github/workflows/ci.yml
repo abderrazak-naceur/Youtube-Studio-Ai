@@ -158,27 +158,42 @@ jobs:
 
           curl --silent --fail http://127.0.0.1:5000/health >/dev/null
 
-          workspace_response=$(curl --silent --fail \
+          # Authenticate: register a user and use the returned JWT for all tenant-scoped calls.
+          auth_response=$(curl --silent --fail \
             -H 'Content-Type: application/json' \
+            -d '{"email":"ci-e2e@example.com","password":"ci-password-123","displayName":"CI"}' \
+            http://127.0.0.1:5000/api/v1/auth/register)
+          token=$(jq -r '.accessToken' <<<"$auth_response")
+          test -n "$token" && test "$token" != "null"
+          auth="Authorization: Bearer $token"
+
+          # Tenant-scoped endpoints must reject anonymous callers.
+          anon_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H 'Content-Type: application/json' -d '{"name":"anon"}' \
+            http://127.0.0.1:5000/api/v1/workspaces)
+          test "$anon_status" = "401"
+
+          workspace_response=$(curl --silent --fail \
+            -H "$auth" -H 'Content-Type: application/json' \
             -d '{"name":"CI E2E Workspace"}' \
             http://127.0.0.1:5000/api/v1/workspaces)
           workspace_id=$(jq -r '.id' <<<"$workspace_response")
           test -n "$workspace_id" && test "$workspace_id" != "null"
 
           project_response=$(curl --silent --fail \
-            -H 'Content-Type: application/json' \
+            -H "$auth" -H 'Content-Type: application/json' \
             -d "{\"workspaceId\":\"$workspace_id\",\"channelId\":null,\"prompt\":\"Create a short explainer about how AI helps creators plan better videos.\"}" \
             http://127.0.0.1:5000/api/v1/video-projects)
           project_id=$(jq -r '.id' <<<"$project_response")
           test -n "$project_id" && test "$project_id" != "null"
 
           curl --silent --fail \
-            -X POST \
+            -H "$auth" -X POST \
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/start >/dev/null
 
           awaiting=false
           for attempt in {1..60}; do
-            status_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id)
+            status_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id)
             status=$(jq -r '.status' <<<"$status_response")
             if [ "$status" = "AwaitingApproval" ]; then
               awaiting=true
@@ -197,22 +212,22 @@ jobs:
           # Human quality gate: the project must not be Completed until it is approved.
           # Approval without acknowledging the AI disclosure must be blocked.
           blocked_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
-            -H 'Content-Type: application/json' \
+            -H "$auth" -H 'Content-Type: application/json' \
             -d '{"reviewer":"ci-e2e","notes":"No disclosure ack."}' \
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
           test "$blocked_status" = "409"
 
           # Approval must acknowledge the AI disclosure for synthetic content.
           approve_response=$(curl --silent --fail \
-            -H 'Content-Type: application/json' \
+            -H "$auth" -H 'Content-Type: application/json' \
             -d '{"reviewer":"ci-e2e","notes":"Automated end-to-end approval.","aiDisclosureAcknowledged":true}' \
             http://127.0.0.1:5000/api/v1/video-projects/$project_id/approve)
           test "$(jq -r '.status' <<<"$approve_response")" = "Completed"
 
-          final_status=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id | jq -r '.status')
+          final_status=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id | jq -r '.status')
           test "$final_status" = "Completed"
 
-          artifacts_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
+          artifacts_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
           artifact_count=$(jq 'length' <<<"$artifacts_response")
           test "$artifact_count" -ge 12
 
@@ -226,18 +241,18 @@ jobs:
           jq -e '(.provenance.contentHash | length) > 0' <<<"$voice_metadata" >/dev/null
 
           # Cost tracking: every produced video must leave measurable per-stage cost data.
-          costs_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/costs)
+          costs_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/costs)
           jq -e '.totalCostUsd > 0' <<<"$costs_response" >/dev/null
           jq -e '(.byStage | length) >= 1' <<<"$costs_response" >/dev/null
           jq -e 'any(.byStage[]; .stage == "Render")' <<<"$costs_response" >/dev/null
 
           # Content Genome: approving a video extracts structured learning attributes.
-          genome_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/content-genome)
+          genome_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/content-genome)
           jq -e '.sceneCount >= 1' <<<"$genome_response" >/dev/null
           jq -e '.wordCount >= 1' <<<"$genome_response" >/dev/null
 
           # Audit trail: the approval must leave an immutable audit record.
-          audit_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/audit)
+          audit_response=$(curl --silent --fail -H "$auth" http://127.0.0.1:5000/api/v1/video-projects/$project_id/audit)
           jq -e 'any(.[]; .action == "video.approved")' <<<"$audit_response" >/dev/null
       - name: Restore backend tests
         run: dotnet restore backend/tests/YoutubeStudio.Api.Tests/YoutubeStudio.Api.Tests.csproj

@@ -11,7 +11,8 @@ namespace YoutubeStudio.Api.Tests;
 
 public sealed class ApprovalControllerTests
 {
-    private static ApprovalController CreateController(YoutubeStudioDbContext db) => new(db, new AuditService(db));
+    private static ApprovalController CreateController(YoutubeStudioDbContext db, WorkspaceRole role = WorkspaceRole.Owner) =>
+        new ApprovalController(db, new AuditService(db), new StubWorkspaceAccess(role)).WithUser();
     [Fact]
     public async Task Approve_returns_not_found_for_missing_project()
     {
@@ -94,6 +95,22 @@ public sealed class ApprovalControllerTests
 
         var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
         Assert.Equal("This project contains AI-generated content and requires the AI disclosure to be acknowledged before approval.", conflict.Value);
+        Assert.Equal(VideoProjectStatus.AwaitingApproval, (await db.VideoProjects.SingleAsync(x => x.Id == project.Id)).Status);
+    }
+
+    [Fact]
+    public async Task Approve_is_forbidden_for_editor_role()
+    {
+        await using var db = CreateDb();
+        var project = await AddProject(db, VideoProjectStatus.AwaitingApproval);
+        AddRenderArtifact(db, project.Id);
+        AddQaArtifact(db, project.Id, passed: true);
+        await db.SaveChangesAsync();
+
+        var result = await CreateController(db, WorkspaceRole.Editor)
+            .Approve(project.Id, new ApprovalDecisionRequest("Alex", null, AiDisclosureAcknowledged: true), CancellationToken.None);
+
+        Assert.IsType<ForbidResult>(result.Result);
         Assert.Equal(VideoProjectStatus.AwaitingApproval, (await db.VideoProjects.SingleAsync(x => x.Id == project.Id)).Status);
     }
 

@@ -1,24 +1,31 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Production;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects")]
 public sealed class VideoProjectsController(
     YoutubeStudioDbContext db,
     IProductionJobService productionJobs,
     IScriptProvider scriptProvider,
+    IWorkspaceAccess access,
     IScenePlanProvider scenePlanProvider = null!) : ControllerBase
 {
+    private async Task<bool> CanAccessProjectAsync(VideoProject project, CancellationToken cancellationToken) =>
+        await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is not null;
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<VideoProjectListItemResponse>>> List([FromQuery] Guid workspaceId, CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, workspaceId, cancellationToken) is null) return Forbid();
         if (!await db.Workspaces.AnyAsync(x => x.Id == workspaceId, cancellationToken)) return BadRequest("Workspace does not exist.");
 
         var projects = await db.VideoProjects.AsNoTracking()
@@ -36,6 +43,7 @@ public sealed class VideoProjectsController(
     {
         var project = await db.VideoProjects.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (!await CanAccessProjectAsync(project, cancellationToken)) return NotFound();
         var job = await db.ProductionJobs.AsNoTracking()
             .Where(x => x.VideoProjectId == id)
             .OrderByDescending(x => x.CreatedAtUtc)
@@ -48,6 +56,7 @@ public sealed class VideoProjectsController(
     public async Task<ActionResult<VideoProjectResponse>> Create(CreateVideoProjectRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Prompt)) return ValidationProblem("Video prompt is required.");
+        if (await access.GetRoleAsync(User, request.WorkspaceId, cancellationToken) is null) return Forbid();
         if (!await db.Workspaces.AnyAsync(x => x.Id == request.WorkspaceId, cancellationToken)) return BadRequest("Workspace does not exist.");
         if (request.ChannelId.HasValue && !await db.Channels.AnyAsync(x => x.Id == request.ChannelId.Value && x.WorkspaceId == request.WorkspaceId, cancellationToken)) return BadRequest("Channel does not belong to the workspace.");
         var project = new VideoProject { WorkspaceId = request.WorkspaceId, ChannelId = request.ChannelId, Prompt = request.Prompt.Trim(), Status = VideoProjectStatus.Draft };
@@ -63,6 +72,7 @@ public sealed class VideoProjectsController(
 
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (!await CanAccessProjectAsync(project, cancellationToken)) return NotFound();
 
         var result = await scriptProvider.GenerateScriptAsync(
             new ScriptRequest(project.Prompt, request.ResearchSummary.Trim()),
@@ -85,6 +95,7 @@ public sealed class VideoProjectsController(
     {
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (!await CanAccessProjectAsync(project, cancellationToken)) return NotFound();
         if (string.IsNullOrWhiteSpace(project.Title) || string.IsNullOrWhiteSpace(project.Script))
             return ValidationProblem("A title and script are required to generate a scene plan.");
         if (project.Status != VideoProjectStatus.Scripted)
@@ -118,6 +129,7 @@ public sealed class VideoProjectsController(
     {
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (!await CanAccessProjectAsync(project, cancellationToken)) return NotFound();
         if (project.Status is not VideoProjectStatus.Draft and not VideoProjectStatus.Failed) return Conflict("The video project is already running or completed.");
         project.Status = VideoProjectStatus.Researching;
         project.UpdatedAtUtc = DateTime.UtcNow;

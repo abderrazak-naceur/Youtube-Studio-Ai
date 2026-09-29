@@ -1,19 +1,27 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/workspaces")]
-public sealed class WorkspacesController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class WorkspacesController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<WorkspaceResponse>>> GetAll(CancellationToken cancellationToken)
     {
-        var workspaces = await db.Workspaces
-            .AsNoTracking()
+        var userId = access.GetUserId(User);
+        if (userId is null) return Unauthorized();
+
+        // Only workspaces the caller is a member of (tenant isolation).
+        var workspaces = await db.Memberships.AsNoTracking()
+            .Where(m => m.UserId == userId.Value)
+            .Select(m => m.Workspace)
             .OrderBy(x => x.Name)
             .Select(x => new WorkspaceResponse(x.Id, x.Name, x.CreatedAtUtc))
             .ToListAsync(cancellationToken);
@@ -24,6 +32,9 @@ public sealed class WorkspacesController(YoutubeStudioDbContext db) : Controller
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<WorkspaceDetailsResponse>> Get(Guid id, CancellationToken cancellationToken)
     {
+        if (await access.GetRoleAsync(User, id, cancellationToken) is null)
+            return NotFound();
+
         var workspace = await db.Workspaces
             .AsNoTracking()
             .Where(x => x.Id == id)
@@ -43,11 +54,15 @@ public sealed class WorkspacesController(YoutubeStudioDbContext db) : Controller
         CreateWorkspaceRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = access.GetUserId(User);
+        if (userId is null) return Unauthorized();
         if (string.IsNullOrWhiteSpace(request.Name))
             return ValidationProblem("Workspace name is required.");
 
         var workspace = new Workspace { Name = request.Name.Trim() };
         db.Workspaces.Add(workspace);
+        // The creator becomes the workspace Owner.
+        db.Memberships.Add(new Membership { UserId = userId.Value, WorkspaceId = workspace.Id, Role = WorkspaceRole.Owner });
         await db.SaveChangesAsync(cancellationToken);
 
         var response = new WorkspaceResponse(workspace.Id, workspace.Name, workspace.CreatedAtUtc);

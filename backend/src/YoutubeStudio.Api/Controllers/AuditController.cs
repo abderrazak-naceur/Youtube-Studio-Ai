@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
@@ -9,13 +11,17 @@ namespace YoutubeStudio.Api.Controllers;
 /// (SECURITY-COMPLIANCE §8, PRODUCT-REQUIREMENTS audit trail).
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects/{videoProjectId:guid}/audit")]
-public sealed class AuditController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class AuditController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AuditEventResponse>>> GetForProject(Guid videoProjectId, CancellationToken cancellationToken)
     {
-        if (!await db.VideoProjects.AnyAsync(x => x.Id == videoProjectId, cancellationToken))
+        var workspaceId = await db.VideoProjects.AsNoTracking()
+            .Where(x => x.Id == videoProjectId).Select(x => (Guid?)x.WorkspaceId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (workspaceId is null || await access.GetRoleAsync(User, workspaceId.Value, cancellationToken) is null)
             return NotFound();
 
         var events = await db.AuditEvents.AsNoTracking()

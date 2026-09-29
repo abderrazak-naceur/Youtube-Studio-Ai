@@ -1,9 +1,11 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using YoutubeStudio.Api.Data;
 using YoutubeStudio.Api.Models;
 using YoutubeStudio.Api.Services;
+using YoutubeStudio.Api.Services.Auth;
 using YoutubeStudio.Api.Services.Providers;
 
 namespace YoutubeStudio.Api.Controllers;
@@ -14,8 +16,9 @@ namespace YoutubeStudio.Api.Controllers;
 /// unless the automated QA artifact recorded a passing result.
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects")]
-public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService audit) : ControllerBase
+public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService audit, IWorkspaceAccess access) : ControllerBase
 {
     [HttpPost("{id:guid}/approve")]
     public async Task<ActionResult<ApprovalResponse>> Approve(Guid id, ApprovalDecisionRequest request, CancellationToken cancellationToken)
@@ -25,6 +28,9 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
 
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
+        if (!await access.HasWorkspaceRoleAsync(User, project.WorkspaceId, WorkspaceRole.Reviewer, cancellationToken))
+            return Forbid();
         if (project.Status != VideoProjectStatus.AwaitingApproval)
             return Conflict("The video project is not awaiting approval.");
 
@@ -83,6 +89,9 @@ public sealed class ApprovalController(YoutubeStudioDbContext db, IAuditService 
 
         var project = await db.VideoProjects.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (project is null) return NotFound();
+        if (await access.GetRoleAsync(User, project.WorkspaceId, cancellationToken) is null) return NotFound();
+        if (!await access.HasWorkspaceRoleAsync(User, project.WorkspaceId, WorkspaceRole.Reviewer, cancellationToken))
+            return Forbid();
         if (project.Status != VideoProjectStatus.AwaitingApproval)
             return Conflict("The video project is not awaiting approval.");
 

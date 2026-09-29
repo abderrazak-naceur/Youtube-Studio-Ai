@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YoutubeStudio.Api.Data;
+using YoutubeStudio.Api.Services.Auth;
 
 namespace YoutubeStudio.Api.Controllers;
 
@@ -9,13 +11,17 @@ namespace YoutubeStudio.Api.Controllers;
 /// and cost per provider can be measured (backlog US-022).
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/v1/video-projects/{videoProjectId:guid}/costs")]
-public sealed class ProductionCostsController(YoutubeStudioDbContext db) : ControllerBase
+public sealed class ProductionCostsController(YoutubeStudioDbContext db, IWorkspaceAccess access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ProductionCostSummaryResponse>> Get(Guid videoProjectId, CancellationToken cancellationToken)
     {
-        if (!await db.VideoProjects.AnyAsync(x => x.Id == videoProjectId, cancellationToken))
+        var workspaceId = await db.VideoProjects.AsNoTracking()
+            .Where(x => x.Id == videoProjectId).Select(x => (Guid?)x.WorkspaceId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (workspaceId is null || await access.GetRoleAsync(User, workspaceId.Value, cancellationToken) is null)
             return NotFound();
 
         var costs = await db.ProductionCosts.AsNoTracking()
