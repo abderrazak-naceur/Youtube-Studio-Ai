@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BarChart3, Check, ChevronRight, FileText, FolderOpen, LayoutDashboard, Loader2, Play, Settings, Sparkles, Upload, Video, X } from 'lucide-react';
 import { OpportunityPanel } from './OpportunityPanel';
 import { ResearchWorkspacePanel } from './ResearchWorkspacePanel';
+import { AiProviderStatusPanel } from './AiProviderStatusPanel';
 import './index.css';
 
 type Stage = 'Draft' | 'Researching' | 'Scripted' | 'Planned' | 'Producing' | 'Rendering' | 'Qa' | 'Completed' | 'Failed';
@@ -139,6 +140,7 @@ function App() {
 
           <OpportunityPanel apiBase={API_BASE} workspaceId={workspaceId} />
           <ResearchWorkspacePanel apiBase={API_BASE} workspaceId={workspaceId} />
+          <AiProviderStatusPanel apiBase={API_BASE} />
 
           {project && <section className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Production</p><h2 className="mt-1 text-xl font-semibold">{project.title || project.prompt}</h2></div><span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-400">{project.status}</span></div><div className="mt-6 grid gap-6 lg:grid-cols-[.8fr_1.2fr]"><div className="space-y-3">{stages.map((stage, index) => { const done = currentIndex >= index && project.status !== 'Failed'; const active = project.status === stage.key; return <div key={stage.key} className="flex items-start gap-3 text-sm"><div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${done ? 'border-zinc-300 bg-zinc-100 text-zinc-950' : 'border-zinc-700 text-zinc-600'}`}>{done && !active ? <Check size={15} /> : active ? <Loader2 size={15} className="animate-spin" /> : index + 1}</div><div><span className={done ? 'text-zinc-100' : 'text-zinc-500'}>{stage.label}</span>{stage.detail && <p className="mt-1 text-xs text-zinc-600">{stage.detail}</p>}</div></div>; })}</div><div className="rounded-2xl border border-zinc-800 bg-zinc-950/60 p-5"><div className="flex items-center gap-2"><FileText size={17} /><span className="text-sm font-medium">Generated artifacts</span></div>{artifacts.length === 0 ? <p className="mt-5 text-sm text-zinc-600">Artifacts will appear here as production progresses.</p> : <div className="mt-4 grid gap-3 sm:grid-cols-2">{artifacts.map(artifact => <article key={artifact.id} className="rounded-xl border border-zinc-800 p-3"><p className="text-sm font-medium">{artifactLabels[artifact.type] ?? artifact.type}</p>{artifact.content ? <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap font-sans text-xs leading-5 text-zinc-500">{artifact.content}</pre> : <p className="mt-2 text-xs text-zinc-600">Asset ready: {artifact.providerAssetId}</p>}</article>)}</div>}</div></div></section>}
         </section>

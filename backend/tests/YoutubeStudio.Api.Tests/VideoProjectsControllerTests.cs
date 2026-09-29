@@ -286,6 +286,8 @@ public sealed class VideoProjectsControllerTests
 
     private sealed class RecordingScriptProvider : IScriptProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Script;
         public ScriptRequest? Request { get; private set; }
 
         public Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken)
@@ -297,6 +299,8 @@ public sealed class VideoProjectsControllerTests
 
     private sealed class EmptyScriptProvider : IScriptProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Script;
         public Task<ScriptResult> GenerateScriptAsync(ScriptRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new ScriptResult("  ", "  "));
     }

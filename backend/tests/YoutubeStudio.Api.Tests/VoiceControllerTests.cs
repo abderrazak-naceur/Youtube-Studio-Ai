@@ -135,6 +135,8 @@ public sealed class VoiceControllerTests
 
     private sealed class RecordingVoiceProvider : IVoiceProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Voice;
         public List<VoiceRequest> Requests { get; } = [];
 
         public Task<VoiceResult> GenerateVoiceAsync(VoiceRequest request, CancellationToken cancellationToken)
@@ -146,6 +148,8 @@ public sealed class VoiceControllerTests
 
     private sealed class InvalidVoiceProvider : IVoiceProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Voice;
         public Task<VoiceResult> GenerateVoiceAsync(VoiceRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new VoiceResult(string.Empty, string.Empty, TimeSpan.Zero));
     }

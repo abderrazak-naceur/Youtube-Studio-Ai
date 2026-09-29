@@ -190,6 +190,8 @@ public sealed class MusicSfxControllerTests
 
     private sealed class RecordingMusicSfxProvider : IMusicSfxProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.MusicSfx;
         public List<MusicSfxRequest> Requests { get; } = [];
 
         public Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken)
@@ -201,6 +203,8 @@ public sealed class MusicSfxControllerTests
 
     private sealed class InvalidMusicSfxProvider : IMusicSfxProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.MusicSfx;
         public Task<MusicSfxResult> GenerateMusicSfxAsync(MusicSfxRequest request, CancellationToken cancellationToken) =>
             Task.FromResult(new MusicSfxResult(string.Empty, string.Empty));
     }

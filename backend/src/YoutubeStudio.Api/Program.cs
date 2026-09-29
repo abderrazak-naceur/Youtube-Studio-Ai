@@ -14,8 +14,13 @@ builder.Services.AddDbContext<YoutubeStudioDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions => npgsqlOptions.SetPostgresVersion(17, 0)));
 
+builder.Services.Configure<ProductionOptions>(builder.Configuration.GetSection(ProductionOptions.SectionName));
 builder.Services.AddScoped<IProductionJobService, ProductionJobService>();
+builder.Services.AddScoped<ProductionPipeline>();
 builder.Services.AddHostedService<VideoProductionWorker>();
+
+builder.Services.Configure<AiProviderOptions>(builder.Configuration.GetSection(AiProviderOptions.SectionName));
+builder.Services.AddSingleton<IModelRouter, ModelRouter>();
 
 builder.Services.AddScoped<IResearchProvider, PlaceholderResearchProvider>();
 builder.Services.AddScoped<IScriptProvider, PlaceholderScriptProvider>();

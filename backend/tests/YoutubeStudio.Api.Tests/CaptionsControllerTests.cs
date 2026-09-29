@@ -230,6 +230,8 @@ public sealed class CaptionsControllerTests
 
     private sealed class RecordingCaptionProvider : ICaptionProvider
     {
+        public string ProviderName => "test";
+        public AiTask SupportedTask => AiTask.Captions;
         public List<CaptionRequest> Requests { get; } = [];
         public CaptionResult Result { get; set; } = new("captions-1", [new CaptionEntry(0, 2, "Caption")]);
 
