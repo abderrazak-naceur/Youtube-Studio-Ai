@@ -183,9 +183,9 @@ jobs:
 
           artifacts_response=$(curl --silent --fail http://127.0.0.1:5000/api/v1/video-projects/$project_id/artifacts)
           artifact_count=$(jq 'length' <<<"$artifacts_response")
-          test "$artifact_count" -ge 9
+          test "$artifact_count" -ge 10
 
-          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Render Qa; do
+          for artifact_type in Research Script ScenePlan Voice Visual MusicSfx Captions Thumbnail Render Qa; do
             jq -e --arg type "$artifact_type" 'any(.[]; .type == $type)' <<<"$artifacts_response" >/dev/null
           done
       - name: Restore backend tests

@@ -9,6 +9,7 @@ public enum ProductionArtifactType
     Visual,
     MusicSfx,
     Captions,
+    Thumbnail,
     Render,
     Qa
 }

@@ -23,6 +23,10 @@ public sealed record CaptionRequest(string Script);
 public sealed record CaptionEntry(double StartSeconds, double EndSeconds, string Text);
 public sealed record CaptionResult(string ProviderAssetId, IReadOnlyList<CaptionEntry> Entries);
 
+public sealed record ThumbnailRequest(string Title, string Script, int CandidateCount);
+public sealed record ThumbnailCandidate(string ProviderAssetId, string Headline, string MediaType);
+public sealed record ThumbnailResult(IReadOnlyList<ThumbnailCandidate> Candidates);
+
 public sealed record RenderRequest(IReadOnlyList<string> AssetIds, string? MusicAssetId);
 public sealed record RenderResult(string ProviderAssetId, TimeSpan Duration);
 
@@ -62,6 +66,11 @@ public interface IMusicSfxProvider
 public interface ICaptionProvider
 {
     Task<CaptionResult> GenerateCaptionsAsync(CaptionRequest request, CancellationToken cancellationToken);
+}
+
+public interface IThumbnailProvider
+{
+    Task<ThumbnailResult> GenerateThumbnailsAsync(ThumbnailRequest request, CancellationToken cancellationToken);
 }
 
 public interface IRenderProvider

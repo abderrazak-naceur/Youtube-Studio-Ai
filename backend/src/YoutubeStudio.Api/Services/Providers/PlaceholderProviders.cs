@@ -62,6 +62,22 @@ public sealed class PlaceholderCaptionProvider : ICaptionProvider
     }
 }
 
+public sealed class PlaceholderThumbnailProvider : IThumbnailProvider
+{
+    public Task<ThumbnailResult> GenerateThumbnailsAsync(ThumbnailRequest request, CancellationToken cancellationToken)
+    {
+        var count = Math.Clamp(request.CandidateCount, 1, 5);
+        var title = request.Title.Trim();
+        var candidates = Enumerable.Range(1, count)
+            .Select(index => new ThumbnailCandidate(
+                $"placeholder-thumbnail-{index}",
+                title.Length <= 60 ? title : title[..60].TrimEnd() + "…",
+                "image/png"))
+            .ToArray();
+        return Task.FromResult(new ThumbnailResult(candidates));
+    }
+}
+
 public sealed class PlaceholderRenderProvider : IRenderProvider
 {
     public Task<RenderResult> RenderAsync(RenderRequest request, CancellationToken cancellationToken) =>

@@ -36,6 +36,7 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
         var visual = scope.ServiceProvider.GetRequiredService<IVisualProvider>();
         var musicSfx = scope.ServiceProvider.GetRequiredService<IMusicSfxProvider>();
         var captions = scope.ServiceProvider.GetRequiredService<ICaptionProvider>();
+        var thumbnail = scope.ServiceProvider.GetRequiredService<IThumbnailProvider>();
         var render = scope.ServiceProvider.GetRequiredService<IRenderProvider>();
         var qa = scope.ServiceProvider.GetRequiredService<IQaProvider>();
 
@@ -87,6 +88,14 @@ public sealed class VideoProductionWorker(IServiceScopeFactory scopeFactory, ILo
 
             var captionResult = await captions.GenerateCaptionsAsync(new CaptionRequest(scriptResult.Script), cancellationToken);
             await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Captions, captionResult.ProviderAssetId, null, null, cancellationToken);
+
+            var thumbnailResult = await thumbnail.GenerateThumbnailsAsync(
+                new ThumbnailRequest(scriptResult.Title, scriptResult.Script, 3), cancellationToken);
+            var primaryThumbnail = thumbnailResult.Candidates.FirstOrDefault();
+            await AddArtifactAsync(db, job.VideoProject, ProductionArtifactType.Thumbnail,
+                primaryThumbnail?.ProviderAssetId ?? "thumbnail",
+                null,
+                JsonSerializer.Serialize(new { candidates = thumbnailResult.Candidates }), cancellationToken);
             await SetStageAsync(db, job, VideoProjectStatus.Rendering, cancellationToken);
 
             var renderResult = await render.RenderAsync(
